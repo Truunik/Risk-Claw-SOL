@@ -1,0 +1,24 @@
+# Anchor / Solana
+programs/target/
+programs/.anchor/
+programs/test-ledger/
+**/Cargo.lock
+
+# Node / bun
+node_modules/
+**/node_modules/
+dist/
+.next/
+bun.lockb
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
