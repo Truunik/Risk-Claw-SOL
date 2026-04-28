@@ -7,7 +7,7 @@ crosses a user-defined threshold, an agent swarm acts on the user's behalf —
 unwinding, rebalancing, or liquidating to safety — without ever exposing the
 user's strategy onchain.
 
-> Built for the Colosseum Frontier hackathon (April 2026).
+> Built for the Colosseum Frontier hackathon. Started 2026-04-27, submission deadline approximately 2026-05-13.
 
 ## What it does
 
@@ -90,7 +90,13 @@ EXIT    catastrophic               MoonPay off-ramp (if user opted in)
 
 ## Team
 
-Two-builder team, split for parallel execution. See **Work split** below.
+Two-builder team, split for parallel execution.
+
+- **Builder A** — App + Agents (frontend, agent orchestration, MoonPay, demo)
+- **Builder B** — Programs + Privacy (Anchor programs, Swig, Arcium, Vanish, Metaplex 014)
+
+Full role breakdown, integration contract, day-by-day plan, and risk callouts
+live in [`BUILD_PLAN.md`](./BUILD_PLAN.md). Read that before starting work.
 
 ## Status
 
