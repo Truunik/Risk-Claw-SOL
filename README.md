@@ -1,89 +1,107 @@
 # RiskClaw-Sol
 
-**An autonomous risk guardian for Solana DeFi positions.**
+**Audit-grade autonomous policy enforcement for institutional onchain capital — with cryptographic guarantees that the policy stays private even from the agents enforcing it.**
 
-RiskClaw-Sol watches a user's Solana DeFi positions in real time. When risk
-crosses a user-defined threshold, an agent swarm acts on the user's behalf —
-unwinding, rebalancing, or liquidating to safety — without ever exposing the
-user's strategy onchain.
+RiskClaw-Sol is a Solana risk-ops layer for institutional LP positions. DAO
+treasuries and onchain funds delegate bounded rebalancing authority to a
+least-privilege three-zone agent stack (read / compute / execute). The user's
+risk policy is enforced on-chain without ever existing on-chain — Arcium MPC
+compares encrypted thresholds against live position metrics, and the agents
+themselves never see plaintext. Execution routes through Vanish to prevent
+behavioral inference across firings.
 
 > Built for the Colosseum Frontier hackathon. Started 2026-04-27, submission deadline approximately 2026-05-13.
 
 ## What it does
 
-A user connects via Phantom Connect, sets a **private** risk tolerance
-(encrypted with Arcium), and delegates bounded execution authority to a
-Guardian smart wallet (Swig). A three-agent swarm — Observer, Analyst,
-Guardian — watches their positions via Helius LaserStream. When risk crosses
-the encrypted threshold, the Guardian executes the rebalance through Vanish so
-MEV bots can't front-run the recovery. If the user opts in, MoonPay handles
-the fiat off-ramp on catastrophic exit.
+A treasury operator connects via Phantom (existing wallet, with a Squads
+multisig as the institution's approval layer for signers). They define a
+risk policy — exposure limits, drawdown thresholds, max counterparty share —
+which is encrypted client-side and stored as ciphertext on Solana. Three
+agents in separate trust zones enforce it:
 
-```
-GREEN   healthy position           agent watches
-YELLOW  risk approaching limit     agent prepares rebalance plan
-RED     threshold breached         Guardian executes via Swig + Vanish
-EXIT    catastrophic               MoonPay off-ramp (if user opted in)
-```
+- **Read zone** (Observer) streams position metrics from Helius LaserStream.
+  No signing authority, no plaintext, no execution.
+- **Compute zone** (Analyst) runs the encrypted threshold comparison inside
+  Arcium MPC. Sees neither the policy nor the metrics in plaintext.
+- **Execute zone** (Guardian) holds the only signing key, bounded tightly by
+  Swig delegation. Receives only a "rebalance / no-op" decision from the
+  compute zone — never the threshold itself.
+
+When the policy is breached, the Guardian executes a rebalance through
+Vanish, preventing behavioral inference across firings. Every action is
+signed by an agent identity registered on the Metaplex 014 registry,
+producing a cryptographically auditable trail of which agent did what,
+when, and under which delegation.
+
+## Why this matters for institutions
+
+- **Audit-grade.** Every Guardian action is a signed Core NFT transaction
+  with a verifiable delegation policy. LPs, boards, and auditors can trace
+  any rebalance back to the specific bounded authority that permitted it.
+- **Policy privacy.** The threshold itself is the alpha. If it leaks, MEV
+  actors front-run firings and competing funds copy the strategy. Encrypted
+  thresholds + behavioral-inference-resistant execution close both holes.
+- **Least-privilege automation.** No single agent can both decide and act.
+  No agent ever holds the policy in plaintext. Compromise of any one zone
+  doesn't compromise the policy or the treasury.
 
 ## Sponsor integrations
 
-| Sponsor    | Role in RiskClaw-Sol                                                  |
-|------------|-----------------------------------------------------------------------|
-| Phantom    | Embedded wallet onboarding (Connect) + web2 email signin              |
-| Swig       | Programmable delegation policy — Guardian executes within user limits |
-| Helius     | LaserStream gRPC for real-time pool + position monitoring             |
-| Metaplex   | Three guardian agents registered on the 014 registry as Core NFTs     |
-| Arcium     | Encrypted user thresholds + positions — strategies stay private       |
-| Vanish     | Private execution path for Guardian rebalances                        |
-| MoonPay    | Agent fiat off-ramp when liquidating to safety                        |
+| Sponsor               | Role in RiskClaw-Sol                                                          |
+|-----------------------|-------------------------------------------------------------------------------|
+| Phantom               | Treasury operator wallet connection (existing wallets, hardware-backed)       |
+| Altitude (Squads)     | Multisig approval layer for institutional signers                             |
+| Swig                  | Bounded delegation policy — Guardian executes only within signed limits       |
+| Helius                | LaserStream gRPC for real-time position monitoring (read zone)                |
+| Metaplex              | Three agents registered on the 014 registry as auditable Core NFT identities  |
+| Arcium                | Encrypted policy storage + MPC comparison (compute zone never sees plaintext) |
+| Vanish                | Private execution path — prevents behavioral inference across firings         |
 
 ## Architecture
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
-│  User (Phantom Connect — email or existing Phantom)                  │
-│  └─ sets encrypted threshold via Arcium                              │
-│  └─ delegates bounded execution to Guardian via Swig                 │
-└────────────────────────────┬─────────────────────────────────────────┘
-                             │
-                             ▼
+│  Treasury operator                                                   │
+│  Phantom wallet ── proposes policy via Squads multisig ─────────┐    │
+│                                                                 │    │
+│  Policy is encrypted client-side, ciphertext stored on Solana   │    │
+└──────────────────────────────────────────────────────────────────┼───┘
+                                                                  │
+                                  ┌───────────────────────────────┘
+                                  ▼
 ┌──────────────────────────────────────────────────────────────────────┐
-│  Agent Swarm (each agent registered on Metaplex 014 as a Core NFT)   │
+│  Three-zone agent stack — least-privilege, key-separated             │
 │                                                                      │
-│  Observer  ─ Helius LaserStream → position metrics                   │
-│  Analyst   ─ scores risk vs encrypted threshold (Arcium MPC)         │
-│  Guardian  ─ executes via Swig delegation, routed through Vanish     │
-└────────────────────────────┬─────────────────────────────────────────┘
-                             │
-                             ▼
+│  READ zone   (Observer)   no keys, RPC reads only                    │
+│              │            Helius LaserStream → metrics               │
+│              ▼                                                       │
+│  COMPUTE zone (Analyst)   no signing key, no plaintext               │
+│              │            Arcium MPC: ciphertext threshold vs metrics│
+│              │            output: { breached: bool, score: u16 }     │
+│              ▼                                                       │
+│  EXECUTE zone (Guardian)  only signing key in the system             │
+│              │            bounded by Swig delegation                 │
+│              ▼            routed through Vanish (private exec)       │
+│                                                                      │
+│  Each agent registered on Metaplex 014 as a Core NFT — every         │
+│  on-chain action is signed by a verifiable agent identity.           │
+└──────────────────────────────────────────────────────────────────────┘
+                                  │
+                                  ▼
 ┌──────────────────────────────────────────────────────────────────────┐
-│  Solana Programs                                                     │
-│  ├─ RiskPolicyProgram     encrypted threshold + exec authority       │
-│  ├─ Swig delegation       bounded execution policy                   │
-│  └─ MoonPay agent         optional fiat exit on catastrophic risk    │
+│  Solana programs                                                     │
+│  ├─ risk_policy        encrypted threshold pointer + Arcium handle   │
+│  └─ swig_delegation    bounded execution authority for Guardian      │
 └──────────────────────────────────────────────────────────────────────┘
 ```
-
-## Why this can win
-
-- **Sponsor stack density** — seven sponsor integrations on one coherent
-  thesis, not bolted on.
-- **Real privacy primitive** — encrypted thresholds via Arcium mean MEV bots
-  literally cannot see when a Guardian will fire. This isn't a swap-privacy
-  bolt-on; it's privacy as a *protective* feature.
-- **Agent identity that pays** — three agents with their own Metaplex 014
-  Core-NFT wallets, executing real value-protective actions, not toy
-  agent-to-agent demos.
-- **Phantom-native UX** — email signin via Phantom Connect, no seed phrases,
-  no extension-only friction.
 
 ## Repo layout
 
 ```
-/app          Next.js frontend (Phantom Connect, dashboard)
+/app          Next.js operator console (Phantom + Squads, policy editor)
 /agents       TypeScript agent swarm (Observer, Analyst, Guardian)
-/programs     Anchor workspace (Solana programs)
+/programs     Anchor workspace (risk_policy, swig_delegation)
 /encrypted    Arcium Arcis circuits (encrypted threshold compare)
 /scripts      devnet deployment + demo harness
 ```
@@ -92,7 +110,7 @@ EXIT    catastrophic               MoonPay off-ramp (if user opted in)
 
 Two-builder team, split for parallel execution.
 
-- **Builder A** — App + Agents (frontend, agent orchestration, MoonPay, demo)
+- **Builder A** — App + Agents (Next.js console, agent orchestration, demo)
 - **Builder B** — Programs + Privacy (Anchor programs, Swig, Arcium, Vanish, Metaplex 014)
 
 Full role breakdown, integration contract, day-by-day plan, and risk callouts
@@ -100,15 +118,16 @@ live in [`BUILD_PLAN.md`](./BUILD_PLAN.md). Read that before starting work.
 
 ## Status
 
-- [ ] Repo scaffolded (app / agents / programs / encrypted)
-- [ ] Phantom Connect integrated (frontend wallet flow)
-- [ ] Helius LaserStream subscribing to one DEX (Orca or Raydium)
-- [ ] Swig delegation: user → Guardian wallet, bounded policy
-- [ ] Anchor: RiskPolicyProgram with encrypted-threshold pointer
-- [ ] Arcium: encrypted threshold + comparison circuit
-- [ ] Agent swarm: Observer → Analyst → Guardian end-to-end on devnet
+- [x] Repo + LICENSE + plan docs
+- [ ] Repo scaffolded (app / agents / programs / encrypted / scripts)
+- [ ] Phantom wallet connect + Squads multisig integration in operator console
+- [ ] Helius LaserStream subscribing to one DEX (Orca or Raydium) — read zone
+- [ ] Arcium Arcis circuit: encrypted threshold compare — compute zone
+- [ ] `risk_policy` Anchor program: ciphertext pointer + Arcium handle
+- [ ] `swig_delegation` bounded execution authority — execute zone
 - [ ] Metaplex 014: three agents registered as Core NFTs
-- [ ] Vanish: private rebalance execution
-- [ ] MoonPay: agent fiat off-ramp
+- [ ] Vanish: private rebalance execution path
+- [ ] End-to-end devnet demo: policy → breach → private execution
+- [ ] Audit trail viewer (read-only UI for action history)
 - [ ] Demo video
 - [ ] Submission on arena.colosseum.org
