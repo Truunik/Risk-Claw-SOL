@@ -3,7 +3,7 @@
 Coordination doc for the two-builder team. Update at the end of each working
 session — this file is the single source of truth for "where are we right now."
 
-> **Last updated:** 2026-05-05 (initial setup)
+> **Last updated:** 2026-05-05 — Builder B (planning surface shipped: PRD + STATUS + CLAUDE.md in PR #1)
 
 ## Where we are
 
@@ -15,26 +15,39 @@ session — this file is the single source of truth for "where are we right now.
 
 ## What's shipped
 
-Latest commit: `8d2cca3` — workspace scaffold + three-zone agents skeleton.
+**On `main`:**
+- `8d2cca3` — workspace scaffold + three-zone agents skeleton (Builder A)
+- `48c03ea` — institutional reposition of README + BUILD_PLAN (Builder A)
+- `8bc3a91` — this CONTINUE.md (Builder A)
 
-For full history: `git log --oneline`.
+**On `builder-b/foundation` (draft PR #1):**
+- `4f29b38` — CLAUDE.md repo guide
+- `575dd2e` + `c671baa` — `.planning/builder-b/{PRD.md, STATUS.md}` (full Builder B PRD with API contracts, security invariants including G1 side-channel mitigation, and 6-stream execution plan)
 
 **Verified state:**
 - `agents/` typechecks clean (`bun run typecheck` passes)
 - `agents/src/run.ts` fails gracefully on missing env vars
-- Every directory has init instructions in its README
+- No `/programs`, `/encrypted`, `/app`, or `packages/onchain` code yet
 
 ## What's blocked / pending coordination
 
-- **Integration contract not locked.** The TS-client signatures in
-  [`BUILD_PLAN.md`](./BUILD_PLAN.md#integration-contract) were scheduled to
-  lock 2026-05-04 EOD. Builder B has not yet reviewed or signed off.
-  **Lock this before either side starts coding** — once either builder
-  builds against an unlocked contract, rework is wasted.
-- **Builder B status unknown.** Has Builder B cloned the repo? Started D1
-  (Arcium kickoff)? Communicate before next session.
-- **No Squads multisig prepared** for the demo treasury. Cheap — do it
-  during D1.
+- **Integration contract — Builder A review needed on PR #1.** The 5-function
+  `OnchainClient` in `agents/src/onchain-client.ts` is consumed verbatim by
+  Builder B. PR #1 proposes two additive helpers (`buildSetEncryptedPolicyIx`,
+  `MXE_CLUSTER_PUBKEY`) for the institutional Squads-proposal flow. **Builder A:
+  read PRD §5 and ack so Builder B can write the package.** No signature changes
+  to the locked interface — these are additions only.
+- **G1 side-channel mitigation — Builder B confirm-or-override.** PRD §9 defaults
+  to option C (Analyst-only `Signer` constraint on `queue_threshold_check` + 5s
+  rate limit). Marked `REVIEW THIS CHOICE` in the PRD. Decide before coding.
+- **Arcium kill-switch (Q1)** — does `arcup` install + `threshold_compare`
+  compile on macOS? Resolve in Builder B's next session. If no, the privacy
+  thesis pivots to a documented fallback per PRD §7.
+- **No Squads multisig** prepared for the demo treasury. Cheap — create a
+  1-of-1 dev multisig via `@sqds/multisig` in any session.
+- **Real deadline** — BUILD_PLAN says 2026-05-13 but Colosseum's Frontier page
+  says "April 6 – May 11, 2026." Verify on arena.colosseum.org before counting
+  days. Realistic remaining runway may be ~6 days, not 8.
 
 ## Builder A — next concrete action
 
@@ -60,36 +73,39 @@ When done: update this file's "What's shipped" + tick the Phantom item in
 
 ## Builder B — next concrete action
 
-**Goal:** Working `anchor build` in `/programs` + Arcis dev environment in
-`/encrypted`.
+**Goal:** Resolve Arcium kill-switch (Q1) — `arcup install` works + Hello World Arcis circuit compiles. Plus `anchor build` clean in `/programs`.
 
 ```bash
-# 1. Install Solana CLI
-sh -c "$(curl -sSfL https://release.solana.com/stable/install)"
+# Toolchain — Solana (Agave) + Anchor 1.0.2 + Arcium (verified install paths)
+sh -c "$(curl -sSfL https://release.anza.xyz/stable/install)"
+export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
 
-# 2. Install Anchor
-cargo install --git https://github.com/coral-xyz/anchor anchor-cli --locked
+cargo install --git https://github.com/solana-foundation/anchor avm --force
+avm install 1.0.2 && avm use 1.0.2
 
-# 3. Anchor init
+cargo install arcup
+arcup install   # pulls arcium CLI + arcis compiler — Q1 KILL-SWITCH
+
+# Anchor workspace
 cd programs
 anchor init . --no-git
 anchor new risk_policy
 anchor new swig_delegation
+anchor build
 
-# 4. Read BUILD_PLAN.md "Integration contract" — approve as-is or propose
-#    changes via PR before any code lands
-
-# 5. Arcis dev env in /encrypted (https://docs.arcium.com)
+# Arcis circuit — read https://docs.arcium.com/developers/hello-world first
+cd ../encrypted
+arcium init threshold_compare   # exact command per Hello World
 ```
 
-**Definition of done for this slice:**
-- `anchor build` succeeds in `/programs`
-- `risk_policy` and `swig_delegation` programs scaffolded (empty handlers OK)
-- Arcis tooling installed; can compile a hello-world circuit in `/encrypted`
-- Integration contract either approved or counter-proposal posted
+**Definition of done:**
+- `arcup install` succeeds; Hello World Arcis circuit compiles → **Q1 = YES**;
+  if it fails → **Q1 = NO**, document fallback in `.planning/builder-b/STATUS.md` and notify Builder A
+- `anchor build` succeeds for both programs
+- `risk_policy` and `swig_delegation` scaffolded (empty handlers OK)
+- Builder A has acknowledged PR #1 §5 (integration-contract additions)
 
-When done: update this file's "What's shipped" + tick relevant items in
-[`README.md`](./README.md) Status section.
+When done: update "What's shipped" + tick items in [`README.md`](./README.md) Status. Do NOT start `risk_policy::init_policy` until PR #1 is acknowledged — saves rework if §5 changes.
 
 **Estimated time:** 4–5 hours.
 
@@ -101,6 +117,9 @@ When done: update this file's "What's shipped" + tick relevant items in
 - [`app/README.md`](./app/README.md) — Next.js + Phantom init (Builder A)
 - [`programs/README.md`](./programs/README.md) — Anchor init (Builder B)
 - [`encrypted/README.md`](./encrypted/README.md) — Arcis init (Builder B)
+- [`.planning/builder-b/PRD.md`](./.planning/builder-b/PRD.md) — Builder B's full plan: features, API contracts (§5), security invariants (§9), 6-stream execution (§12)
+- [`.planning/builder-b/STATUS.md`](./.planning/builder-b/STATUS.md) — Builder B's live pipeline state, open spikes Q1–Q7, implementation TBDs
+- [`CLAUDE.md`](./CLAUDE.md) — repo guide + boundary rules + integration-contract pointer
 
 ## How to update this file
 
