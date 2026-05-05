@@ -106,6 +106,32 @@ Update spike resolution in `PRD.md` Section 6.
 
 ---
 
+## Implementation TBDs
+
+Surfaced during PRD self-review. These are not spec gaps (the PRD is approved-ready); they are
+implementation-time decisions that surface during specific tasks. Resolve in-task; record outcome here.
+
+| ID | Resolve during | TBD |
+|---|---|---|
+| **G2** | P-11 / Pkg-18 | Compute-unit budget for `swig_delegation::execute_rebalance`. Default plan: request 600k CU via `ComputeBudgetProgram::setComputeUnitLimit` in the constructed tx. Verify under load. |
+| **G3** | (new) S-23b | `scripts/seed-demo.ts` — mint USDC + paired-token LP into a demo treasury wallet on devnet. Builder B owns since it touches deployed program state. |
+| **G4** | T-28 | Anchor test approach for Squads vault signing: lean toward `solana_program_test` `set_account` injection for unit tests; manual e2e against real Squads on devnet for integration. |
+| **G5** | Pkg-16 | ✅ Resolved in PRD §5 — `buildSetEncryptedPolicyIx` + `buildUpdateEncryptedPolicyIx` exposed alongside `setEncryptedPolicy` convenience wrapper. |
+| **G6** | Pkg-21 / S-24 | ✅ Resolved in PRD §5 — `MXE_CLUSTER_PUBKEY` exported from `@riskclaw/onchain`, populated by `deploy-devnet.ts` from Arcium cluster. |
+| **G7** | P-11 / Pkg-19 | `DelegationPolicy.allowedInstruments` format — pin to "base58-encoded program IDs only (v1)"; instruction-level scoping is v2. Document in package README. |
+| **U1** | Pkg-16 | `setEncryptedPolicy` convenience path returns `TxSig` of `vault_transaction_execute`; institutional path uses `buildSetEncryptedPolicyIx` for unsigned ix. (Resolved by G5.) |
+| **U2** | Pkg-17 | Callback polling: prefer WebSocket via `connection.onLogs` for the program; fallback to `getSignatureStatuses` polling at 1s if WS unavailable. |
+| **U3** | F-4 | IDL copy: `prebuild` script in `packages/onchain/package.json` running `cp programs/target/idl/*.json src/idl/` after `anchor build`. |
+| **U4** | T-28 | Anchor tests: ts-mocha for compatibility with Anchor's TypeScript fixtures. |
+| **U5** | All P / C tasks | Logging policy: `msg!` allowed for event emission and rejection-error context only. No account-data dumps. No score values. |
+| **U6** | S-23 | `register-agents.ts` validates each registry entry against on-chain existence (`fetchAssetV1`); skips only if asset exists AND owner matches the keypair. |
+| **U7** | S-25 | Deploy script destructively wipes existing `RiskPolicy` PDAs before redeploy when the `arcium_handle` rotates. Loud confirmation prompt; not silent. |
+| **D1** | Demo prep | Vanish status: drop from BUILD_PLAN demo storyboard (1:20–1:45 slot becomes "Routed through Solana directly; Vanish integration v2"). Cleaner than half-wiring. |
+| **D2** | Demo prep | Demo restoration after EXIT: re-running `init_policy` after first run requires either `update_policy` path or a `close_policy` instruction. Default: `update_policy` for v1 (cheaper). |
+| **D3** | Demo prep | Demo wallet seed: Builder A owns the demo Phantom wallet for the operator persona; Builder B owns the deploy keypair + 3 agent keypairs. |
+
+---
+
 ## Boundary state with Builder A
 
 | Surface | State |

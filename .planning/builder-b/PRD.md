@@ -109,9 +109,10 @@ pub struct RiskPolicy {
     pub arcium_handle:         [u8; 32],  // 32 — Arcium computation-definition handle
     pub policy_hash:           [u8; 32],  // 32 — sha256(ciphertext_ref || arcium_handle)
     pub updated_at:            i64,       //  8 — Solana clock at last write
+    pub last_check_at:         i64,       //  8 — soft rate limit for queue_threshold_check (G1)
     pub bump:                  u8,        //  1
 }
-// Total: 8 (discriminator) + 169 = 177 bytes
+// Total: 8 (discriminator) + 177 = 185 bytes
 ```
 
 **Output schema (events):**
@@ -247,8 +248,9 @@ packages/onchain/
 
 | FR | Function | Requirement | Priority |
 |---|---|---|---|
-| FR-1 | `setEncryptedPolicy` | Constructs an `init_policy` (or `update_policy` if PDA exists) ix. Returns ix that the *caller* (Builder A) wraps in a Squads `vault_transaction_create` flow. | Must |
-| FR-2 | `setEncryptedPolicy` | Does NOT sign on behalf of the multisig — only constructs the ix. The multisig vault PDA signs via Squads. | Must |
+| FR-1 | `setEncryptedPolicy` | **Convenience path** (suitable for demo + scripts with a 1-of-1 multisig): builds the `init_policy` (or `update_policy` if the PDA exists) ix, wraps it in the full Squads `vault_transaction_create + proposal_create + proposal_approve + vault_transaction_execute` flow, and returns the `TxSig` of the final `vault_transaction_execute`. | Must |
+| FR-1b | `buildSetEncryptedPolicyIx` (helper, see §5) | **Institutional path**: returns an unsigned `TransactionInstruction` so Builder A's app (or any caller) can embed the ix in a custom Squads proposal flow driven by the operator at `app.squads.so` or via `@sqds/multisig` directly. Does not sign and does not submit. | Must |
+| FR-2 | `setEncryptedPolicy` (both paths) | Even the convenience path goes through Squads' `vault_transaction_execute` — this function NEVER produces a signature for `risk_policy::init_policy`/`update_policy` outside a Squads flow. The multisig vault PDA is the only authority that ever mutates a policy. | Must |
 | FR-3 | `delegateToGuardian` | Calls Swig's `addAuthority` (or equivalent) to register `guardian` as a sub-authority on a Swig wallet bound to the multisig vault. Maps `DelegationPolicy` fields to Swig permission types. | Must |
 | FR-4 | `delegateToGuardian` | Slippage cap from `DelegationPolicy.maxSlippageBps` is propagated to `swig_delegation::execute_rebalance` calls (read at exec time, not stored in Swig). | Must |
 | FR-5 | `checkThresholdBreach` | Submits `risk_policy::queue_threshold_check` with `metrics.notionalUSD` as score. Awaits `ThresholdCheckEvent` callback (max 30s). | Must |
@@ -465,6 +467,24 @@ export function createRealClient(opts: {
   wallet: Wallet;
   cluster: "devnet";
 }): OnchainClient;
+
+// ix builders for institutional flow (G5 — Builder A consumes from app/)
+// These return UNSIGNED TransactionInstructions for embedding in custom
+// Squads proposal flows. The convenience methods on OnchainClient call
+// these internally for the 1-of-1 multisig demo path.
+export function buildSetEncryptedPolicyIx(opts: {
+  multisig: PublicKey;
+  ciphertext: Uint8Array;
+}): Promise<TransactionInstruction>;
+
+export function buildUpdateEncryptedPolicyIx(opts: {
+  multisig: PublicKey;
+  ciphertext: Uint8Array;
+}): Promise<TransactionInstruction>;
+
+// MXE cluster pubkey for client-side encryption (G6 — Builder A's app reads this
+// before calling encryptThreshold). Populated by deploy-devnet.ts at deploy time.
+export const MXE_CLUSTER_PUBKEY: PublicKey;
 ```
 
 ### Anchor program IDLs
@@ -605,6 +625,7 @@ This section is the heart of the audit-grade story. Every requirement here must 
 | Plaintext threshold never appears in logs | 100% | Includes `console.log`, `msg!`, telemetry, error messages. Code review must grep for `threshold` and assert no plaintext references. |
 | `ThresholdCheckResult.score` is a pure passthrough of the input score | 100% | If `score` is ever a function of the decrypted threshold, the threshold leaks bit-by-bit across firings. Pinned in circuit code with a comment. |
 | `encryptThreshold` does not retain plaintext after returning | 100% | No logs, no temp variables, no error messages quote the plaintext. |
+| **No public oracle for `breached`** (G1) | 100% | An attacker who can submit arbitrary scores and read the boolean result can binary-search the encrypted threshold in O(log range) firings. The `breached` boolean is itself a side-channel; it must not be queryable by untrusted callers. See [Side-channel mitigation](#side-channel-mitigation-g1) below. |
 
 ### Authority constraints
 
@@ -612,7 +633,34 @@ This section is the heart of the audit-grade story. Every requirement here must 
 |---|---|---|
 | Only the Squads V4 vault PDA mutates `risk_policy` | `Signer + has_one` Anchor constraint | The vault PDA can only be signed via Squads' `invoke_signed`. Anchor's `Signer` constraint is cryptographic proof. |
 | Only a Guardian sub-authority calls `swig_delegation::execute_rebalance` | Swig's onchain authority enforcement | If Swig's bounded delegation works, our wrapper inherits that bound. If it doesn't, we have a v2 problem. |
+| **Only the registered Analyst agent calls `risk_policy::queue_threshold_check`** (G1) | `Signer` constraint on the Analyst agent's keypair, cross-checked against the Metaplex Core asset whose `zone="compute"` Attribute is set | Closes the public-oracle side-channel: arbitrary callers cannot binary-search the threshold by feeding scores. The Analyst is the only caller, and the Analyst is a registered agent identity. |
 | Three agent zones have distinct keypairs | `register-agents.ts` generates unique keys per zone | Compromise of Observer's keypair must not move funds. |
+
+### Side-channel mitigation (G1)
+
+> **REVIEW THIS CHOICE** — there are three defensible mitigations; we've picked option C with a soft option A as belt-and-suspenders. Builder B should confirm or override before execution.
+
+The `breached` boolean returned from `checkThresholdBreach` is, in principle, a side-channel: a caller who can submit arbitrary scores and observe the boolean response can binary-search the encrypted threshold. With a u64 threshold, ~64 calls suffice to recover the plaintext. **This breaks the audit-grade pitch if not closed.**
+
+**Considered options:**
+
+| Option | Mechanism | Strength | Cost |
+|---|---|---|---|
+| **A** | Per-policy rate limit (e.g., one check per 5s) | Slows attack from minutes to days; doesn't prevent | Requires a `last_check_at` field on `RiskPolicy` |
+| **B** | Fee per `queue_threshold_check` (charge SOL or a token) | Makes binary search expensive | Adds a fee account + economic-model decision |
+| **C** | **Signer constraint: only the registered Analyst agent calls `queue_threshold_check`** | Eliminates the public oracle entirely | Requires Analyst keypair + Metaplex zone-attribute verification onchain |
+
+**Chosen mitigation: C + soft A as defense-in-depth.**
+
+Rationale: Option C aligns with the project's "three trust zones" architecture — the Analyst is *already* a registered agent identity with its own keypair. Adding a `Signer` constraint on `queue_threshold_check` is a natural extension, not a new primitive. If the Analyst's key is compromised, the soft 5-second rate limit (option A) caps the attacker's bandwidth even before the operator can rotate the agent.
+
+**Implementation notes:**
+- `risk_policy::queue_threshold_check` adds an `analyst: Signer<'info>` account.
+- The instruction verifies that the `analyst` pubkey matches the owner of the Metaplex Core asset registered with `zone="compute"`. Since the asset list comes from the deploy registry, this can be a constant on the `RiskPolicy` account or a per-call account argument.
+- A `last_check_at: i64` field is added to `RiskPolicy`; the instruction rejects if `now - last_check_at < 5`.
+- Documented and tested in T-30b (new test): "Random signer attempts queue_threshold_check → reject."
+
+This adds ~30 lines of Rust and one Anchor test. It is **not** optional.
 
 ### Input validation
 
