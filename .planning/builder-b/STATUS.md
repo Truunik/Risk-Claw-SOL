@@ -113,6 +113,8 @@ implementation-time decisions that surface during specific tasks. Resolve in-tas
 
 | ID | Resolve during | TBD |
 |---|---|---|
+| **TBD-RateLimit** | Pkg-17 | ✅ Resolved in PRD §2.4 FR-5/FR-5b — `RealClient.checkThresholdBreach` throttles internally via per-policy `{lastCheckedAt, lastResult}` cache (5s window matching G1 onchain rate limit). Eliminates the tick-rate collision Builder A's `run.ts:23` would otherwise cause. Implement during Pkg-17. Add a unit test verifying second call within 5s returns cached result without RPC submission. |
+| **TBD-RunPlaceholder** | (Builder A action) | Builder A's `agents/src/run.ts:31` placeholder uses `action: "REDUCE"`; v1 only ships `EXIT`. Flagged in CONTINUE.md. Builder A changes to `"EXIT"` when swapping `stubClient` → `RealClient`. Builder B does not block on this. |
 | **G2** | P-11 / Pkg-18 | Compute-unit budget for `swig_delegation::execute_rebalance`. Default plan: request 600k CU via `ComputeBudgetProgram::setComputeUnitLimit` in the constructed tx. Verify under load. |
 | **G3** | (new) S-23b | `scripts/seed-demo.ts` — mint USDC + paired-token LP into a demo treasury wallet on devnet. Builder B owns since it touches deployed program state. |
 | **G4** | T-28 | Anchor test approach for Squads vault signing: lean toward `solana_program_test` `set_account` injection for unit tests; manual e2e against real Squads on devnet for integration. |
