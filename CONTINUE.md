@@ -3,7 +3,7 @@
 Coordination doc for the two-builder team. Update at the end of each working
 session — this file is the single source of truth for "where are we right now."
 
-> **Last updated:** 2026-05-05 — Builder B (planning surface shipped: PRD + STATUS + CLAUDE.md in PR #1)
+> **Last updated:** 2026-05-06 — Builder B (cross-boundary audit complete; flagged 3 gaps to Builder A)
 
 ## Where we are
 
@@ -48,6 +48,18 @@ session — this file is the single source of truth for "where are we right now.
 - **Real deadline** — BUILD_PLAN says 2026-05-13 but Colosseum's Frontier page
   says "April 6 – May 11, 2026." Verify on arena.colosseum.org before counting
   days. Realistic remaining runway may be ~6 days, not 8.
+- **⚠️ Builder A heads up — `agents/src/run.ts:31` placeholder uses `action: "REDUCE"`.**
+  Per Builder B's PRD §2.2 + FR-9, v1 ships only `EXIT`; `REDUCE` and `HEDGE`
+  return `NotImplementedError`. When you swap `stubClient` → `RealClient`,
+  change the placeholder to `"EXIT"` or expect `NotImplementedError` at runtime
+  until v2.
+- **Tick-rate vs. rate-limit collision (G1).** `run.ts:23` calls
+  `analyst.evaluate(metrics)` on every Helius LaserStream tick (potentially
+  many per second), but `risk_policy::queue_threshold_check` enforces a 5s
+  per-policy rate limit. Builder B's `RealClient.checkThresholdBreach` will
+  throttle internally (cache-and-return prior result within 5s window) so
+  Builder A's analyst doesn't need to debounce — see PRD §2.4 FR-5
+  throttling semantic.
 
 ## Builder A — next concrete action
 
