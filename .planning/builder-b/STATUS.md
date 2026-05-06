@@ -43,6 +43,7 @@ Live state for Builder B's execution. Updated as work progresses.
 - [ ] **P-8** Anchor unit tests for init/update
 - [ ] **P-9** `anchor new swig_delegation` + execute skeleton
 - [ ] **P-10** Slippage assertion + `RebalanceAction` enum + `NotImplemented` paths
+- [ ] **P-10b** B3 idempotency: `RebalanceTooSoon` rejection + `last_rebalanced_at` write
 - [ ] **P-11** Swig CPI wiring for `Exit` (after Q2 spike)
 
 ### Stream C — Circuit
@@ -56,7 +57,9 @@ Live state for Builder B's execution. Updated as work progresses.
 - [ ] **Pkg-15** `OnchainClient` import + `RealClient` skeleton
 - [ ] **Pkg-16** `setEncryptedPolicy` real implementation
 - [ ] **Pkg-17** `checkThresholdBreach` (queue + await callback)
+- [ ] **Pkg-17b** FR-5b read-throttle cache in `RealClient`
 - [ ] **Pkg-18** `executePrivateRebalance` (Orca quote + Swig wrapper)
+- [ ] **Pkg-18b** FR-8b idempotency catch (`RebalanceTooSoon` → prior `TxSig`)
 - [ ] **Pkg-19** `delegateToGuardian` (Swig addAuthority — after Q2)
 - [ ] **Pkg-20** `registerAgent` (Metaplex Core mint via Umi)
 - [ ] **Pkg-21** `encryptThreshold` helper
@@ -65,19 +68,24 @@ Live state for Builder B's execution. Updated as work progresses.
 ### Stream S — Scripts
 
 - [ ] **S-23** `scripts/register-agents.ts` idempotent
+- [ ] **S-23b** `scripts/seed-demo.ts` — demo Orca LP into demo treasury (B4, see PRD §2.7)
 - [ ] **S-24** `scripts/deploy-devnet.ts` skeleton
 - [ ] **S-25** Arcium circuit deploy in deploy script (after Q7)
 - [ ] **S-26** `config/devnet.ts` schema and writers
-- [ ] **S-27** Clean-machine end-to-end smoke run
+- [ ] **S-27** Clean-machine end-to-end smoke run (manual)
+- [ ] **S-27b** `scripts/e2e-smoke.ts` — automated end-to-end (B4, see PRD §2.8)
 
 ### Stream T — Tests
 
 - [ ] **T-28** `risk_policy` Anchor tests
 - [ ] **T-29** `swig_delegation` Anchor tests
+- [ ] **T-29b** `RebalanceTooSoon` rejection test (B3, AC-13)
 - [ ] **T-30** Arcis circuit tests (3 scenarios)
+- [ ] **T-30b** Analyst-only signer rejection test (G1, AC-11)
 - [ ] **T-31** `RealClient` unit tests
+- [ ] **T-31b** Throttle cache tests — FR-5b read + FR-8b write (AC-12 + AC-13 client side)
 - [ ] **T-32** `encryptThreshold` roundtrip test
-- [ ] **T-33** E2E happy path on devnet
+- [ ] **T-33** E2E happy path on devnet (now via S-27b automation)
 - [ ] **T-34** Privacy invariant audit (code grep + tx log inspection)
 
 ---
@@ -113,10 +121,15 @@ implementation-time decisions that surface during specific tasks. Resolve in-tas
 
 | ID | Resolve during | TBD |
 |---|---|---|
-| **TBD-RateLimit** | Pkg-17 | ✅ Resolved in PRD §2.4 FR-5/FR-5b — `RealClient.checkThresholdBreach` throttles internally via per-policy `{lastCheckedAt, lastResult}` cache (5s window matching G1 onchain rate limit). Eliminates the tick-rate collision Builder A's `run.ts:23` would otherwise cause. Implement during Pkg-17. Add a unit test verifying second call within 5s returns cached result without RPC submission. |
+| **TBD-RateLimit** | Pkg-17b | ✅ Resolved in PRD §2.4 FR-5/FR-5b. Pipeline task Pkg-17b + test T-31b added. |
 | **TBD-RunPlaceholder** | (Builder A action) | Builder A's `agents/src/run.ts:31` placeholder uses `action: "REDUCE"`; v1 only ships `EXIT`. Flagged in CONTINUE.md. Builder A changes to `"EXIT"` when swapping `stubClient` → `RealClient`. Builder B does not block on this. |
+| **B1** | T-30b | ✅ Resolved — Analyst-only signer rejection test added to §8 AC-11 + STATUS T-30b. |
+| **B2** | T-31b | ✅ Resolved — FR-5b cache test added to §8 AC-12 + STATUS T-31b. |
+| **B3** | P-10b / Pkg-18b / T-29b | ✅ Resolved — write-side idempotency: `RiskPolicy.last_rebalanced_at` + `swig_delegation::execute_rebalance` rejects within 30s window with `RebalanceTooSoon`; `RealClient.executePrivateRebalance` (FR-8b) catches and returns prior `TxSig`. PRD §2.1, §2.2, §2.4, §8 AC-13, §9 "Write-side idempotency" all updated. |
+| **B4** | S-23b / S-27b | ✅ Resolved — `seed-demo.ts` formalized in PRD §2.7; `e2e-smoke.ts` formalized in PRD §2.8. Pipeline tasks S-23b + S-27b added. |
+| **B5** | Pkg-15 | ✅ Resolved — `createRealClient` factory signature in PRD §5 now specifies optional `arciumClusterPubkey`, `readThrottleMs` (5_000 default), `writeThrottleMs` (30_000 default). |
 | **G2** | P-11 / Pkg-18 | Compute-unit budget for `swig_delegation::execute_rebalance`. Default plan: request 600k CU via `ComputeBudgetProgram::setComputeUnitLimit` in the constructed tx. Verify under load. |
-| **G3** | (new) S-23b | `scripts/seed-demo.ts` — mint USDC + paired-token LP into a demo treasury wallet on devnet. Builder B owns since it touches deployed program state. |
+| **G3** | S-23b | ✅ Now formal §2.7 sub-feature; was previously a TBD-only item. |
 | **G4** | T-28 | Anchor test approach for Squads vault signing: lean toward `solana_program_test` `set_account` injection for unit tests; manual e2e against real Squads on devnet for integration. |
 | **G5** | Pkg-16 | ✅ Resolved in PRD §5 — `buildSetEncryptedPolicyIx` + `buildUpdateEncryptedPolicyIx` exposed alongside `setEncryptedPolicy` convenience wrapper. |
 | **G6** | Pkg-21 / S-24 | ✅ Resolved in PRD §5 — `MXE_CLUSTER_PUBKEY` exported from `@riskclaw/onchain`, populated by `deploy-devnet.ts` from Arcium cluster. |

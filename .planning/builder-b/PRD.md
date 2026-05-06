@@ -109,10 +109,11 @@ pub struct RiskPolicy {
     pub arcium_handle:         [u8; 32],  // 32 — Arcium computation-definition handle
     pub policy_hash:           [u8; 32],  // 32 — sha256(ciphertext_ref || arcium_handle)
     pub updated_at:            i64,       //  8 — Solana clock at last write
-    pub last_check_at:         i64,       //  8 — soft rate limit for queue_threshold_check (G1)
+    pub last_check_at:         i64,       //  8 — read-side rate limit for queue_threshold_check (G1)
+    pub last_rebalanced_at:    i64,       //  8 — write-side rate limit for execute_rebalance (B3)
     pub bump:                  u8,        //  1
 }
-// Total: 8 (discriminator) + 177 = 185 bytes
+// Total: 8 (discriminator) + 185 = 193 bytes
 ```
 
 **Output schema (events):**
@@ -142,15 +143,17 @@ pub struct ThresholdCheckEvent {
 **Data sources:** Inputs come from Builder A's `Guardian` (via `executePrivateRebalance`). The wrapper does not fetch external prices — `expected_out` is supplied by the caller (Guardian's quote logic).
 
 **Collection / processing steps:**
+0. **Idempotency check (B3):** rejects with `RebalanceTooSoon` if `now - policy.last_rebalanced_at < 30` seconds. Closes the cross-boundary collision where Builder A's Analyst would call `guardian.execute(...)` repeatedly within FR-5b's cached `breached: true` window. The 30s window is intentionally larger than FR-5b's 5s read-cache to absorb confirmation latency + retries.
 1. `execute_rebalance(action, size_bps, max_slippage_bps, expected_out, min_out)` — caller-supplied bound check.
 2. Asserts `min_out * 10_000 ≥ expected_out * (10_000 - max_slippage_bps)`. If false, reject.
 3. CPIs into Swig's `sign_v1` with the inner swap instruction passed in via `remaining_accounts`.
-4. Emits `RebalanceExecutedEvent` with policy reference, agent identity, action, size, timestamp.
+4. Updates `policy.last_rebalanced_at = now` and emits `RebalanceExecutedEvent` with policy reference, agent identity, action, size, timestamp.
 
 **Account schema:**
 ```rust
 #[derive(Accounts)]
 pub struct ExecuteRebalance<'info> {
+    #[account(mut)]                                               // mut for last_rebalanced_at write
     pub policy: Account<'info, RiskPolicy>,                       // cross-program reference
     pub guardian_authority: Signer<'info>,                        // a Swig sub-authority
     /// CHECK: Swig program; verified by program ID match in CPI.
@@ -175,7 +178,8 @@ pub enum RebalanceAction { Reduce, Exit, Hedge }
 ```
 
 **Failure mode:**
-- Slippage check fails → `RiskClawError::SlippageTooHigh`. No CPI fires.
+- Recent rebalance (<30s) → `RiskClawError::RebalanceTooSoon`. The TS-side `executePrivateRebalance` catches this and resolves with the *prior* `TxSig` (treats as no-op success). Builder A's Guardian sees no error and continues listening — see FR-8b in §2.4.
+- Slippage check fails → `RiskClawError::SlippageTooHigh`. No CPI fires. Surfaced to caller as `SlippageRejectedError`.
 - Action ≠ `Exit` in v1 → `RiskClawError::NotImplemented`. The `Reduce` and `Hedge` enum variants exist for boundary stability but are explicit error returns until v2.
 - Inner Swig CPI fails → propagates the underlying Swig error. Wrapper does not swallow.
 
@@ -258,6 +262,7 @@ packages/onchain/
 | FR-6 | `checkThresholdBreach` | On 30s timeout OR before any prior successful call has populated the cache, returns `{ breached: false, score: 0 }`. Does NOT throw. Caller may retry. | Must |
 | FR-7 | `checkThresholdBreach` | The plaintext score must NEVER be logged or persisted past the function call inside this package. Caller (Analyst) controls observability of the score. | Must |
 | FR-8 | `executePrivateRebalance` | Builds the EXIT-to-USDC swap via Orca SDK, computes `expected_out` and `min_out` from `plan.sizeBps` and the cap from delegation, and constructs `swig_delegation::execute_rebalance` with the swap ix as remaining accounts. | Must |
+| FR-8b | `executePrivateRebalance` (idempotency) | When `swig_delegation::execute_rebalance` returns `RebalanceTooSoon` (B3 — recent rebalance < 30s), `RealClient` catches the error and resolves with the most recent successful `TxSig` for this policy (cached in memory alongside the read throttle). Does NOT throw. Builder A's Guardian sees a normal `TxSig` and treats the call as a no-op success. | Must |
 | FR-9 | `executePrivateRebalance` | For `action ∈ {REDUCE, HEDGE}` returns a clearly-typed `NotImplementedError` — does not silently succeed. | Must |
 | FR-10 | `registerAgent` | Mints a Metaplex Core asset with `agent.publicKey` as owner, `agent.name` as name, and an `Attributes` plugin entry `[{key: "zone", value: agent.zone}, {key: "agent_pubkey", value: ...}]`. | Must |
 | FR-11 | `registerAgent` | Idempotent: if an asset already exists for the given `(zone, name)` pair, returns the existing mint address rather than creating a duplicate. | Should |
@@ -318,6 +323,53 @@ export const DEVNET_AGENTS = {
 **Output:** `config/devnet.ts` updated with `RISK_POLICY_PROGRAM_ID`, `SWIG_DELEGATION_PROGRAM_ID`, agent mints if applicable.
 
 **Failure mode:** Deploy failure (program too large, insufficient SOL, etc.) → abort with descriptive error. Builder B re-runs after fixing.
+
+---
+
+### 2.7 `scripts/seed-demo.ts` — demo position seeder (B4)
+
+**Purpose:** Mints a demo Orca LP position into the demo treasury wallet on devnet so the breach-and-rebalance demo has something real to monitor and exit. Without this, the demo storyboard's "$2M in LP positions" is empty narration.
+
+**Inputs:** Deploy keypair (loaded from `~/.config/solana/id.json`); demo treasury wallet pubkey (from `config/devnet.ts` — populated either by Builder A or by an upstream `--treasury` flag); a fixed Orca pool address (hardcoded for v1).
+
+**Processing steps:**
+1. Airdrop SOL to the demo treasury wallet if balance < 1 SOL.
+2. Mint mock USDC + paired token (or use devnet USDC faucet if available).
+3. Open an Orca LP position via the Orca SDK on the hardcoded pool, depositing $2k-equivalent of paired tokens.
+4. Record the LP position address into `config/devnet.ts` as `DEMO_POSITION` so Builder A's Observer subscribes to the right account.
+5. Idempotent: if `DEMO_POSITION` already exists in the registry and the on-chain account is alive, skip step 3.
+
+**Output:** `config/devnet.ts` gets `DEMO_TREASURY_WALLET` + `DEMO_POSITION` + `DEMO_ORCA_POOL` exports.
+
+**Failure mode:** Devnet RPC down → script aborts. Orca pool nonexistent on devnet → log a clear error and document the substitute pool that *is* live (Builder B verifies during S-23b execution).
+
+**Downstream consumers:** Builder A's Observer (subscribes to `DEMO_POSITION`), demo recording (relies on the position being non-empty).
+
+---
+
+### 2.8 `scripts/e2e-smoke.ts` — clean-machine end-to-end smoke (B4)
+
+**Purpose:** Runs the full Builder B surface against a clean devnet state and asserts the demo flow works without manual intervention. Builder B's pre-merge gate.
+
+**Inputs:** A clean devnet wallet keypair; an empty `scripts/devnet-registry.json`.
+
+**Processing steps:**
+1. Run `deploy-devnet.ts --with-agents` to deploy programs + register the three agents.
+2. Run `seed-demo.ts` to create the demo LP position.
+3. Construct a Squads 1-of-1 multisig via `@sqds/multisig` SDK.
+4. Encrypt a threshold via `encryptThreshold(9000n, MXE_CLUSTER_PUBKEY)`; call `setEncryptedPolicy(multisig, ciphertext)`.
+5. Call `delegateToGuardian(multisig, guardianPubkey, policy)`.
+6. Simulate a position-value drop below threshold (drain or swap part of the LP via a side script).
+7. Call `checkThresholdBreach(positionId, metrics)` from a script-side Analyst stub; assert `breached: true`.
+8. Call `executePrivateRebalance({action: "EXIT", sizeBps: 10_000, positionId})`; assert `TxSig` returned and on-chain `RebalanceExecutedEvent` exists.
+9. Re-call `checkThresholdBreach` immediately; assert FR-5b cache returns the prior result without RPC.
+10. Re-call `executePrivateRebalance`; assert FR-8b returns the prior `TxSig` (no second exit).
+
+**Output:** Process exits 0 on all assertions passing; non-zero with the failed step on any failure.
+
+**Failure mode:** Any step fails → script aborts with the failed step number + suggested remediation pointer (PRD section).
+
+**Downstream consumers:** Demo recording (this script's success is the precondition for recording), CI if added later.
 
 ---
 
@@ -467,6 +519,16 @@ export function createRealClient(opts: {
   connection: Connection;
   wallet: Wallet;
   cluster: "devnet";
+  /** Override MXE cluster pubkey for the encrypted comparison.
+   *  Defaults to the MXE_CLUSTER_PUBKEY export populated by deploy-devnet.ts.
+   *  Set explicitly during testing or after MXE rotation. */
+  arciumClusterPubkey?: PublicKey;
+  /** Read-side throttle window for FR-5b (default 5_000 ms = 5s).
+   *  Should match the `risk_policy::queue_threshold_check` onchain rate limit. */
+  readThrottleMs?: number;
+  /** Write-side idempotency window for FR-8b (default 30_000 ms = 30s).
+   *  Should match the `swig_delegation::execute_rebalance` onchain rate limit. */
+  writeThrottleMs?: number;
 }): OnchainClient;
 
 // ix builders for institutional flow (G5 — Builder A consumes from app/)
@@ -580,6 +642,9 @@ Invoked via `risk_policy::queue_threshold_check`; result delivered via `compare_
 | AC-8 | Three `AgentConfig` objects (one per zone) | `registerAgent` is called for each | Three Metaplex Core assets exist with the correct owners and `Attributes` plugin populated with `zone` | Must Pass |
 | AC-9 | `register-agents.ts` is run a second time | The script reads the registry and detects existing mints | No new mints are created; script exits successfully | Should Pass |
 | AC-10 | Builder A's `agents/src/run.ts` swaps `stubClient` → `RealClient` | The agent loop runs end-to-end on devnet against a deployed policy | Observer → Analyst → Guardian flow completes one full cycle without errors | Must Pass |
+| AC-11 | A deployed `risk_policy` + a random keypair that is NOT the registered Analyst (G1) | The random keypair calls `risk_policy::queue_threshold_check` directly | Tx fails with `ConstraintSigner` or a custom `RiskClawError::UnauthorizedAnalyst` | Must Pass |
+| AC-12 | `RealClient.checkThresholdBreach` is called once successfully (returns `{breached: true, score: X}`); a second call is made <5s later with a different score | (FR-5b throttle) | Second call returns the cached prior result `{breached: true, score: X}` and emits no RPC submission. After 5s elapses, a third call fires fresh. | Must Pass |
+| AC-13 | A `RiskPolicy` with `last_rebalanced_at = now`; `executePrivateRebalance({action: "EXIT"})` is called <30s later | (B3 idempotency) | Onchain rejects with `RebalanceTooSoon`; TS-side `executePrivateRebalance` resolves with the prior `TxSig` (no throw, no second swap) | Must Pass |
 
 ### Unit test targets
 
@@ -587,10 +652,10 @@ Invoked via `risk_policy::queue_threshold_check`; result delivered via `compare_
 |---|---|---|
 | `risk_policy::init_policy` | Account creation, PDA seeds, signer enforcement | 100% of branches |
 | `risk_policy::update_policy` | `has_one` + `Signer` rejection paths | 100% of branches |
-| `risk_policy::queue_threshold_check` | Argument forwarding to Arcium CPI (mocked) | 80% |
-| `swig_delegation::execute_rebalance` | Slippage assertion math; `NotImplemented` for non-Exit | 100% of branches |
+| `risk_policy::queue_threshold_check` | Argument forwarding to Arcium CPI (mocked); Analyst-only `Signer` rejection (G1, AC-11); 5s read rate-limit rejection | 100% of branches |
+| `swig_delegation::execute_rebalance` | Slippage assertion math; `NotImplemented` for non-Exit; `RebalanceTooSoon` rejection within 30s window (B3, AC-13) | 100% of branches |
 | `threshold_compare` circuit | Manual: compile + simulator run with edge values (0, MAX_U64, equal score & threshold) | 100% (3 scenarios) |
-| `@riskclaw/onchain.RealClient` | Each function constructs the correct ix; error mapping | 80% |
+| `@riskclaw/onchain.RealClient` | Each function constructs the correct ix; error mapping; **FR-5b read-throttle cache** (AC-12: second call <5s returns cached, third call >5s submits fresh); **FR-8b write-throttle catch** (AC-13: `RebalanceTooSoon` resolves with prior `TxSig`, no throw) | 90% |
 | `@riskclaw/onchain.encryptThreshold` | Roundtrip: encrypt → decrypt with matching key produces input | 100% |
 
 ### Integration test targets
@@ -662,6 +727,20 @@ Rationale: Option C aligns with the project's "three trust zones" architecture �
 - Documented and tested in T-30b (new test): "Random signer attempts queue_threshold_check → reject."
 
 This adds ~30 lines of Rust and one Anchor test. It is **not** optional.
+
+### Write-side idempotency (B3)
+
+The Guardian write path has the same cross-boundary risk as the read path. Builder A's Analyst calls `guardian.execute(...)` whenever `checkThresholdBreach` returns `breached: true`. With FR-5b's read cache returning `breached: true` for up to 5 seconds after a real fire, the Guardian would attempt to execute the same EXIT multiple times — once for the real result, then again on each cached re-fire until the position state changes.
+
+**Mitigation (parallel structure to G1):**
+- `RiskPolicy.last_rebalanced_at: i64` field added (see §2.1 schema).
+- `swig_delegation::execute_rebalance` rejects with `RebalanceTooSoon` if `now - policy.last_rebalanced_at < 30` seconds (see §2.2 step 0).
+- The 30s window is intentionally larger than FR-5b's 5s read-cache to absorb confirmation latency and any retries.
+- TS-side `executePrivateRebalance` (FR-8b) catches `RebalanceTooSoon` and resolves with the *prior* `TxSig` for that policy. Builder A's Guardian sees a normal `TxSig` and treats the call as a no-op success — no error propagation, no analyst-loop change required.
+
+**Why this is symmetric with G1:** the read path can't fire faster than 5s onchain *and* the client throttles to match. The write path can't fire faster than 30s onchain *and* the client absorbs the rejection silently. Both paths are bounded, both paths are auditable (the read `ThresholdCheckEvent` and write `RebalanceExecutedEvent` are emitted only on real fires), and Builder A's tick-driven analyst loop works correctly under any tick rate.
+
+**Documented and tested:** AC-13 (§8) + unit test on `swig_delegation::execute_rebalance` covering the rejection.
 
 ### Input validation
 
@@ -791,7 +870,8 @@ Builder B is one developer; this section describes **work streams** (not concurr
 | 8 | Anchor unit tests for init/update | `programs/tests/risk_policy.ts` | Blocked by 6,7 | 28 |
 | 9 | `anchor new swig_delegation` + `execute_rebalance` skeleton | `programs/programs/swig_delegation/src/lib.rs` | Blocked by 2 | 10,11 |
 | 10 | Slippage assertion + `RebalanceAction` enum + `NotImplemented` for Reduce/Hedge | same | Blocked by 9 | 11,16 |
-| 11 | Swig CPI wiring for `Exit` (after Q2 spike) | same | Blocked by 10 + Q2 | 16 |
+| 10b | **B3 idempotency:** `RebalanceTooSoon` rejection if `now - policy.last_rebalanced_at < 30s`; update `last_rebalanced_at` on success | same | Blocked by 10, 5 (RiskPolicy schema with new field) | 11,18 |
+| 11 | Swig CPI wiring for `Exit` (after Q2 spike) | same | Blocked by 10b + Q2 | 16 |
 
 ### Stream C — Circuit
 
@@ -808,7 +888,9 @@ Builder B is one developer; this section describes **work streams** (not concurr
 | 15 | `OnchainClient` import + `RealClient` skeleton | `packages/onchain/src/client.ts` | Blocked by 4,6 | 16,17,18,19 |
 | 16 | `setEncryptedPolicy` real implementation | same | Blocked by 15 | 23,A's swap |
 | 17 | `checkThresholdBreach` (queues, awaits callback, decodes event) | same + `events.ts` | Blocked by 15,14 | A's swap |
+| 17b | **FR-5b throttle cache** in `RealClient` (in-memory `{lastCheckedAt, lastResult}` per policy; 5s window) | same | Blocked by 17 | T-31b |
 | 18 | `executePrivateRebalance` (Orca quote + swap ix + Swig wrapper) | same | Blocked by 11,15 | A's swap |
+| 18b | **FR-8b idempotency catch** in `RealClient` (catch `RebalanceTooSoon`, return prior `TxSig` from cache) | same | Blocked by 18, 10b | T-31b |
 | 19 | `delegateToGuardian` (Swig addAuthority — after Q2 spike) | same | Blocked by 15 + Q2 | A's full flow |
 | 20 | `registerAgent` (Metaplex Core mint via Umi) | same | Blocked by 15 | 23 |
 | 21 | `encryptThreshold` helper | `packages/onchain/src/encrypt.ts` | Blocked by 4 | A's app |
@@ -819,10 +901,12 @@ Builder B is one developer; this section describes **work streams** (not concurr
 | # | Task | File(s) | Status | Blocks |
 |---|---|---|---|---|
 | 23 | `register-agents.ts` (idempotent, writes to `config/devnet.ts`) | `scripts/register-agents.ts` | Blocked by 20 | 27 |
+| 23b | **B4: `seed-demo.ts`** — mints demo Orca LP into demo treasury wallet, writes `DEMO_POSITION` into `config/devnet.ts` (see §2.7) | `scripts/seed-demo.ts` | Blocked by 24 | 27, 27b |
 | 24 | `deploy-devnet.ts` skeleton (`anchor build` + `keys sync` + `deploy`) | `scripts/deploy-devnet.ts` | Blocked by 5,9 | 27 |
 | 25 | Arcium circuit deployment in deploy script (after Q7 spike) | same | Blocked by 24,13 + Q7 | 27 |
 | 26 | `config/devnet.ts` schema + writes from both scripts | `config/devnet.ts` | Blocked by 23,24 | A's runtime |
 | 27 | End-to-end devnet smoke test runs from a clean machine | (manual) | Blocked by 25,26 | Demo readiness |
+| 27b | **B4: `e2e-smoke.ts`** — automated end-to-end assertion script per §2.8; pre-merge gate | `scripts/e2e-smoke.ts` | Blocked by 23b, 25, 26 | T-33 |
 
 ### Stream T — Tests
 
@@ -830,10 +914,13 @@ Builder B is one developer; this section describes **work streams** (not concurr
 |---|---|---|---|---|
 | 28 | `risk_policy` Anchor tests (init/update happy + reject paths) | `programs/tests/risk_policy.ts` | Blocked by 6,7 | Acceptance |
 | 29 | `swig_delegation` Anchor tests (slippage + NotImplemented) | `programs/tests/swig_delegation.ts` | Blocked by 11 | Acceptance |
+| 29b | **B3: `RebalanceTooSoon` rejection test** (AC-13) — execute_rebalance within 30s rejects | `programs/tests/swig_delegation.ts` | Blocked by 10b | Acceptance |
 | 30 | Arcis circuit tests (3 scenarios: lt, eq, gt) | manual via Arcium tooling | Blocked by 13 | Acceptance |
+| 30b | **G1: Analyst-only signer rejection test** (AC-11) — random signer calls `queue_threshold_check` and is rejected | `programs/tests/risk_policy.ts` | Blocked by 14 | Acceptance |
 | 31 | `RealClient` unit tests (mock Connection) | `packages/onchain/tests/client.spec.ts` | Blocked by Pkg | Acceptance |
+| 31b | **FR-5b + FR-8b cache tests** (AC-12 + AC-13) — second read returns cached, second write resolves with prior TxSig | `packages/onchain/tests/throttle.spec.ts` | Blocked by 17b, 18b | Acceptance |
 | 32 | `encryptThreshold` roundtrip test | `packages/onchain/tests/encrypt.spec.ts` | Blocked by 21 | Acceptance |
-| 33 | E2E happy path on devnet (manual scripted run) | `scripts/e2e-smoke.ts` | Blocked by 27 | Acceptance |
+| 33 | E2E happy path on devnet (now via §2.8 `e2e-smoke.ts` automation) | `scripts/e2e-smoke.ts` | Blocked by 27b | Acceptance |
 | 34 | Privacy invariant audit (manual code grep + tx log inspection) | this PRD §9 + code review | Blocked by all | Final acceptance |
 
 ### Parallelism
@@ -885,8 +972,8 @@ After Stream F completes, **P, C, and Pkg can run in interleaved fashion**: the 
 - [ ] `encrypted/threshold_compare/{Cargo.toml, src/lib.rs}`
 - [ ] `packages/onchain/{package.json, tsconfig.json}`
 - [ ] `packages/onchain/src/{index.ts, client.ts, encrypt.ts, ids.ts, events.ts, errors.ts, idl/}`
-- [ ] `packages/onchain/tests/{client.spec.ts, encrypt.spec.ts}`
-- [ ] `scripts/{register-agents.ts, deploy-devnet.ts, e2e-smoke.ts}`
+- [ ] `packages/onchain/tests/{client.spec.ts, encrypt.spec.ts, throttle.spec.ts}`
+- [ ] `scripts/{register-agents.ts, deploy-devnet.ts, seed-demo.ts, e2e-smoke.ts}`
 - [ ] `scripts/.keys/.gitkeep` (with `.gitignore` entry for `*.json`)
 - [ ] `config/devnet.ts`
 - [ ] `.gitignore` updated with `scripts/.keys/*.json` and `packages/*/dist/`
