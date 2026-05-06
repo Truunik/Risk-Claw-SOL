@@ -184,14 +184,59 @@ When you add a new package or workspace, **update this section**.
 - **Conventional commits, no AI signatures** — see global rules in
   `~/.claude/CLAUDE.md`. Branch: `builder-{a|b}/<scope>`.
 
+### CONTINUE.md is the daily handoff document — read first, update last
+
+[`CONTINUE.md`](./CONTINUE.md) at the repo root is the single source of truth
+for "where are we right now." It is updated **before** stopping a session and
+**read** when starting a session. It is the highest-frequency document in
+the repo.
+
+**At the START of any session** (Claude or human builder):
+
+1. Read `CONTINUE.md` BEFORE asking "what should we work on?" — the answer is
+   in §4 (Builder A) or §5 (Builder B).
+2. If the **Last updated** line is older than your last session, treat the file
+   as potentially stale — pull `main` and look at recent commits to ground truth.
+3. If a `[unsynced]` flag exists in the team thread, trust commits over the file.
+
+**Before STOPPING any session** (Claude or human builder), update `CONTINUE.md`:
+
+1. Bump the **Last updated** line with your name + a one-line summary of what shipped.
+2. Move done items from "next concrete action" into "What's shipped" (with commit refs).
+3. Add new blockers to "What's blocked / pending coordination."
+4. Rewrite "next concrete action" for *your own role* if it changed (do not
+   edit the other builder's section without coordinating in DM).
+5. Commit directly on `main` — `CONTINUE.md` is shared coordination state,
+   not feature work, so no PR is needed.
+
+**Rules:**
+
+- **Honesty over optics.** A tracker that lies stops being a tracker. If the
+  plan slipped 3 days, write "Slip: 3 days" — never "on track."
+- **150-line budget.** If `CONTINUE.md` grows past 150 lines, the day-by-day
+  belongs in `BUILD_PLAN.md`, not here.
+- **No-time fallback.** If you cannot update before stepping away, drop a
+  one-liner in the team thread tagged `[unsynced]` so the next session knows.
+- **Claude must follow this rule too.** Before ending any session that
+  produced commits or material decisions, propose the `CONTINUE.md` update
+  to the user; if the user accepts, write and commit before signing off.
+
 ## Source-of-truth docs
 
+Listed in order of read frequency — start at the top of every session.
+
+- **[`CONTINUE.md`](./CONTINUE.md)** — daily handoff: where we are, what
+  shipped, what's blocked, what to do next. Read FIRST every session.
 - [`README.md`](./README.md) — pitch, architecture diagram, sponsor table, status checklist
 - [`BUILD_PLAN.md`](./BUILD_PLAN.md) — work split, integration contract,
   calendar-anchored day-by-day plan, risk callouts, demo storyboard, submission checklist
 - [`agents/src/onchain-client.ts`](./agents/src/onchain-client.ts) — the live
   integration contract (interface + stub)
 - [`agents/src/types.ts`](./agents/src/types.ts) — shared cross-boundary types
+- [`.planning/builder-b/PRD.md`](./.planning/builder-b/PRD.md) — Builder B's
+  full PRD (features, API contracts §5, security invariants §9, execution streams §12)
+- [`.planning/builder-b/STATUS.md`](./.planning/builder-b/STATUS.md) — Builder B's
+  live execution state, open spikes Q1–Q7, implementation TBDs
 
 When these and CLAUDE.md disagree, **the source-of-truth docs win** — update
 CLAUDE.md to match.
