@@ -3,7 +3,7 @@
 Coordination doc for the two-builder team. Update at the end of each working
 session — this file is the single source of truth for "where are we right now."
 
-> **Last updated:** 2026-05-06 — Builder B (cross-boundary audit complete; flagged 3 gaps to Builder A)
+> **Last updated:** 2026-05-06 — Builder B (PRD gaps B1–B5 closed in PR #1; BUILD_PLAN drift flagged for Builder A)
 
 ## Where we are
 
@@ -45,21 +45,24 @@ session — this file is the single source of truth for "where are we right now.
   thesis pivots to a documented fallback per PRD §7.
 - **No Squads multisig** prepared for the demo treasury. Cheap — create a
   1-of-1 dev multisig via `@sqds/multisig` in any session.
-- **Real deadline** — BUILD_PLAN says 2026-05-13 but Colosseum's Frontier page
-  says "April 6 – May 11, 2026." Verify on arena.colosseum.org before counting
-  days. Realistic remaining runway may be ~6 days, not 8.
-- **⚠️ Builder A heads up — `agents/src/run.ts:31` placeholder uses `action: "REDUCE"`.**
-  Per Builder B's PRD §2.2 + FR-9, v1 ships only `EXIT`; `REDUCE` and `HEDGE`
-  return `NotImplementedError`. When you swap `stubClient` → `RealClient`,
-  change the placeholder to `"EXIT"` or expect `NotImplementedError` at runtime
-  until v2.
-- **Tick-rate vs. rate-limit collision (G1).** `run.ts:23` calls
-  `analyst.evaluate(metrics)` on every Helius LaserStream tick (potentially
-  many per second), but `risk_policy::queue_threshold_check` enforces a 5s
-  per-policy rate limit. Builder B's `RealClient.checkThresholdBreach` will
-  throttle internally (cache-and-return prior result within 5s window) so
-  Builder A's analyst doesn't need to debounce — see PRD §2.4 FR-5
-  throttling semantic.
+- **⚠️ BUILD_PLAN drift — Builder A action.** Three claims in BUILD_PLAN are
+  inconsistent with verified facts:
+  (A1) Demo storyboard at 1:20–1:45 narrates Vanish, but PRD §1 marks Vanish
+  out of scope (not a Frontier sponsor; no $10k bounty exists). Suggest beat
+  becomes "Routed through Solana directly; Vanish v2."
+  (A2) Submission checklist lists Vanish/Helius/Swig sponsor tracks. Verified
+  Frontier supporters: Altitude · Phantom · Arcium · Raydium · Coinbase ·
+  World · MoonPay · Metaplex · Privy · Reflect · Superteam. Prune accordingly.
+  (A3) "Metaplex 014 registry" is not in Metaplex docs. Replace with
+  "Metaplex Core (`mpl-core`)" per PRD §2.5.
+  Also: BUILD_PLAN deadline 2026-05-13 vs. Frontier page "April 6 – May 11."
+  Verify on arena.colosseum.org.
+- **⚠️ Builder A — `agents/src/run.ts:31` placeholder uses `action: "REDUCE"`;
+  v1 ships only `EXIT`** (PRD §2.2 + FR-9). Change to `"EXIT"` when swapping
+  `stubClient` → `RealClient`, else expect `NotImplementedError` at runtime.
+- **Tick-rate, rate-limit + write-idempotency — resolved in PRD §2.4 FR-5b/FR-8b.**
+  `run.ts`'s tick-driven loop is safe: read throttles to 5s; write absorbs
+  `RebalanceTooSoon` (30s) silently. No debouncing needed on Builder A's side.
 
 ## Builder A — next concrete action
 
