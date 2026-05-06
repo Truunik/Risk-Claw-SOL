@@ -60,12 +60,9 @@ session — this file is the single source of truth for "where are we right now.
 - **⚠️ Builder A — `agents/src/run.ts:31` placeholder uses `action: "REDUCE"`;
   v1 ships only `EXIT`** (PRD §2.2 + FR-9). Change to `"EXIT"` when swapping
   `stubClient` → `RealClient`, else expect `NotImplementedError` at runtime.
-- **Tick-rate / rate-limit + idempotency — both resolved in PRD.** `run.ts`
-  fires on every Helius tick, but `RealClient.checkThresholdBreach` (FR-5b)
-  throttles to 5s per policy returning cached results, and
-  `executePrivateRebalance` (FR-8b) absorbs onchain `RebalanceTooSoon` (30s
-  write-side window) by returning the prior `TxSig`. Builder A's analyst
-  loop works correctly under any tick rate without debouncing.
+- **Tick-rate, rate-limit + write-idempotency — resolved in PRD §2.4 FR-5b/FR-8b.**
+  `run.ts`'s tick-driven loop is safe: read throttles to 5s; write absorbs
+  `RebalanceTooSoon` (30s) silently. No debouncing needed on Builder A's side.
 
 ## Builder A — next concrete action
 
