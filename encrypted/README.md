@@ -1,31 +1,34 @@
-# /encrypted — Arcium Arcis circuits
+# /encrypted — Arcis MPC circuits (Builder B)
 
-Builder B territory. Encrypted compute for the policy comparison.
+Arcium toolchain (`arcup`/`arcium`/Arcis compiler) + Docker via OrbStack. The actual circuit project is at `threshold_compare/`.
 
-## Setup
+## Layout (as scaffolded by `arcium init`)
 
-This directory is intentionally empty. Builder B scaffolds Arcis inside it
-on D1 (2026-05-03):
-
-```bash
-# Install Arcis (Arcium's Rust framework)
-# Reference: https://docs.arcium.com
-cd encrypted
-cargo new --lib threshold_compare
+```
+threshold_compare/
+├── encrypted-ixs/src/lib.rs    # Arcis circuit (the MPC primitive — currently Hello World add_together)
+├── programs/threshold_compare/ # Reference Anchor host program showing queue_computation pattern
+├── Anchor.toml + Arcium.toml   # toolchain + cluster config (Cerberus backend, 2-node localnet)
+├── tests/threshold_compare.ts  # ts-mocha test harness
+└── package.json + yarn.lock    # frontend deps (per arcium init default to yarn)
 ```
 
-## What lives here
+## Build / verify
 
-- `threshold_compare` — MPC circuit that compares an encrypted threshold
-  against computed risk metrics. Inputs:
-  - encrypted threshold ciphertext
-  - plaintext risk score (computed by Analyst from observed metrics)
-- Output: `{ breached: bool, score: u16 }`. The threshold itself never
-  decrypts to plaintext anywhere in the system.
+```bash
+cd threshold_compare
+arcium build         # compiles circuit + host program + IDLs
+arcium localnet      # spins up local 2-node MXE cluster (requires Docker)
+arcium test          # runs ts-mocha tests against localnet
+```
 
-## Why this is load-bearing
+## State (Q1 kill-switch — RESOLVED)
 
-The README claims "agents never see plaintext." The Arcis circuit is the
-only thing comparison happens inside. If the comparison ever runs outside
-Arcium (even as a fallback), the claim breaks. Document any v1 caveats
-explicitly — do not paper over them.
+- Toolchain compiles the Hello World `add_together` circuit cleanly (commit log).
+- The reference host program at `programs/threshold_compare/` is a *demonstrator* — our real production host is `risk_policy` in the repo's `/programs/` workspace, wired to Arcium in PRD task C-14.
+- Next: replace `add_together` with `compare(threshold, score) -> (bool, u64)` per PRD §2.3 (task C-13).
+
+## Known warnings (non-fatal)
+
+- arcium-client 0.9.7 has a stack-frame size warning in its IDL `TryFrom` impl (~865KB). Their crate, not ours; no action.
+- Pinned `anchor_version = "0.32.1"` in `threshold_compare/Anchor.toml` to match `arcium-anchor` 0.9.7's anchor-lang dep.

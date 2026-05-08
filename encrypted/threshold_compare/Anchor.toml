@@ -1,0 +1,19 @@
+[toolchain]
+package_manager = "yarn"
+anchor_version = "0.32.1"  # arcium-anchor 0.9.7 pins anchor-lang 0.32.1; align CLI to silence the build warning
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+threshold_compare = "8xsGTJzqzXoY2ta89wgLw6R8iX6bQWpq1yKerQdxo1e2"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "cargo test"
+
+[hooks]
