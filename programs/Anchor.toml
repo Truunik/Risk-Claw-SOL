@@ -1,0 +1,19 @@
+[toolchain]
+package_manager = "bun"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+risk_policy = "FNThNjwxtdVSttM1Q9R81pKbiSF7jCzt8vE22A4PHrzN"
+swig_delegation = "9ECtiz1EnfKnVDYFKn4GofXGeoCZHupqN2GPkcgL9zBo"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "cargo test"
+
+[hooks]
