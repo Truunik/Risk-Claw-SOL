@@ -3,88 +3,83 @@
 Coordination doc for the two-builder team. Update at the end of each working
 session — this file is the single source of truth for "where are we right now."
 
-> **Last updated:** 2026-05-08 — Builder B (Stream F 100% + C-12 + C-13 done; Q1 kill-switch resolved via OrbStack)
+> **Last updated:** 2026-05-08 — Builder A (PR #1 merged; deadline corrected to 2026-05-11; Phantom wallet shipped; G1 confirmed; BUILD_PLAN drift fixed)
 
 ## Where we are
 
-- **Calendar date:** 2026-05-05
-- **Day per plan:** D3 of 11 (see [`BUILD_PLAN.md`](./BUILD_PLAN.md) day-by-day)
-- **Deadline:** 2026-05-13 — **8 days remaining**
-- **Slip:** 3 days. None of D1, D2, or D3's work has been started yet.
-  Plan is no longer realistic at original cadence; either compress or cut scope.
+- **Calendar date:** 2026-05-08
+- **Day per plan:** D6 of 10 (see [`BUILD_PLAN.md`](./BUILD_PLAN.md) day-by-day)
+- **Deadline:** **2026-05-11** — **3 days remaining** (corrected from 2026-05-13;
+  verified on colosseum.com/frontier on 2026-05-08)
+- **Slip:** Builder B caught up; Builder A foundation now shipping. Plan is
+  compressed: D9 = final cut + submit on 2026-05-11. D10/D11 obsolete.
 
 ## What's shipped
 
 **On `main`:**
 - `8d2cca3` — workspace scaffold + three-zone agents skeleton (Builder A)
 - `48c03ea` — institutional reposition of README + BUILD_PLAN (Builder A)
-- `8bc3a91` — this CONTINUE.md (Builder A)
+- `8bc3a91`..`b794c27` — CONTINUE.md handoff doc (Builder A)
+- `c8406d3` — **PR #1 merged** (Builder B planning surface, Anchor scaffold,
+  `@riskclaw/onchain` skeleton, Arcium `threshold_compare` circuit). Includes:
+  - Planning surface — CLAUDE.md + PRD + STATUS
+  - **F-2 Anchor scaffold**: `anchor build` clean for `risk_policy` + `swig_delegation`
+  - **F-4 `@riskclaw/onchain` skeleton**: typecheck clean both sides of the boundary
+  - **F-3 + C-12 Arcium scaffold**: `arcium init threshold_compare`. Q1 KILL-SWITCH RESOLVED.
+  - **C-13 `compare(threshold, score)` circuit**: replaces Hello World per PRD §2.3; `build/compare.arcis.ir` (464M ACU)
 
-**On `builder-b/foundation` (draft PR #1):**
-- Planning surface — CLAUDE.md + PRD + STATUS (commits `4f29b38`..`75c1666`).
-- **F-2 Anchor scaffold** (`5179cc5`): `anchor build` clean for `risk_policy` + `swig_delegation`.
-- **F-4 `@riskclaw/onchain` skeleton** (`c7c9c52`): typecheck clean both sides of the boundary.
-- **F-3 + C-12 Arcium scaffold** (`0890c77`): `arcium init threshold_compare`; Hello World `add_together` compiles. **Q1 KILL-SWITCH RESOLVED.**
-- **C-13 `compare(threshold, score)` circuit** (`c9140f7`): replaces Hello World per PRD §2.3; privacy-invariant comment in code; `arcium build` exit 0; `build/compare.arcis.ir` (464M ACU).
-- **F-1 toolchain locally**: Rust 1.95.0 / Solana 3.1.14 / Anchor 1.0.2 / Yarn 1.22.22 / bun 1.3.11 / **Docker 29.4.0 via OrbStack** / Arcium 0.9.7.
+**On `builder-a/foundation` (PR pending):**
+- **Phantom wallet shipped in `/app`**: Next.js 16 + Tailwind v4 + Phantom adapter on devnet. `bun run build` clean. WalletMultiButton renders, connected pubkey shows.
+- **G1 mitigation confirmed** in PRD §9: option C (Analyst `Signer` constraint) + soft option A (5s rate limit). REVIEW THIS CHOICE marker resolved — Builder B unblocked on `queue_threshold_check`.
+- **BUILD_PLAN drift fixed (A1/A2/A3)**: Vanish removed from in-scope demo + integration; storyboard 1:20–1:45 retargeted to Swig bounded execution; submission checklist pruned to verified Frontier sponsors (Phantom · Altitude · Arcium · Metaplex Core); "Metaplex 014" replaced with Metaplex Core (`mpl-core`).
+- **Deadline correction**: BUILD_PLAN + CLAUDE.md updated to 2026-05-11 (verified on colosseum.com/frontier).
+- **`agents/src/run.ts:31` fixed**: `action: "REDUCE"` → `"EXIT"` per PRD §2.2 + FR-9; sizeBps 5000 → 10000 (full close). Comment refreshed to drop stale D5 date.
+
+**Toolchain (local, Builder B):** Rust 1.95.0 / Solana 3.1.14 / Anchor 1.0.2 / Yarn 1.22.22 / bun 1.3.11 / **Docker 29.4.0 via OrbStack** / Arcium 0.9.7.
 
 **Verified state:**
 - `agents/` typechecks clean (`bun run typecheck` passes)
-- `agents/src/run.ts` fails gracefully on missing env vars
-- No `/programs`, `/encrypted`, `/app`, or `packages/onchain` code yet
+- `app/` builds clean (`bun run build` passes; static export of /, /_not-found)
+- `programs/risk_policy` + `swig_delegation`: empty Anchor stubs, build clean
+- `packages/onchain`: re-exports `OnchainClient` interface + shared types
+- `encrypted/threshold_compare`: Arcis IR compiled
+- `scripts/`: README only (Pkg-15..22 + register-agents pending)
 
 ## What's blocked / pending coordination
 
-- **Integration contract — Builder A review needed on PR #1.** The 5-function
+- **Integration contract — PR #1 merged 2026-05-08.** The 5-function
   `OnchainClient` in `agents/src/onchain-client.ts` is consumed verbatim by
-  Builder B. PR #1 proposes two additive helpers (`buildSetEncryptedPolicyIx`,
-  `MXE_CLUSTER_PUBKEY`) for the institutional Squads-proposal flow. **Builder A:
-  read PRD §5 and ack so Builder B can write the package.** No signature changes
-  to the locked interface — these are additions only.
-- **G1 mitigation** — option C is the PRD default; `REVIEW THIS CHOICE` marker
-  open until Builder B confirms or overrides before coding `queue_threshold_check`.
+  Builder B. The two additive helpers (`buildSetEncryptedPolicyIx`,
+  `buildUpdateEncryptedPolicyIx`, `MXE_CLUSTER_PUBKEY`) ship with the merge.
+  No signature drift on the locked interface.
 - **No Squads multisig** prepared for the demo treasury. Cheap — create a
-  1-of-1 dev multisig via `@sqds/multisig` in any session.
-- **⚠️ BUILD_PLAN drift — Builder A action.** Three claims in BUILD_PLAN are
-  inconsistent with verified facts:
-  (A1) Demo storyboard at 1:20–1:45 narrates Vanish, but PRD §1 marks Vanish
-  out of scope (not a Frontier sponsor; no $10k bounty exists). Suggest beat
-  becomes "Routed through Solana directly; Vanish v2."
-  (A2) Submission checklist lists Vanish/Helius/Swig sponsor tracks. Verified
-  Frontier supporters: Altitude · Phantom · Arcium · Raydium · Coinbase ·
-  World · MoonPay · Metaplex · Privy · Reflect · Superteam. Prune accordingly.
-  (A3) "Metaplex 014 registry" is not in Metaplex docs. Replace with
-  "Metaplex Core (`mpl-core`)" per PRD §2.5.
-  Also: BUILD_PLAN deadline 2026-05-13 vs. Frontier page "April 6 – May 11."
-  Verify on arena.colosseum.org.
-- **⚠️ Builder A — `agents/src/run.ts:31` placeholder uses `action: "REDUCE"`;
-  v1 ships only `EXIT`** (PRD §2.2 + FR-9). Change to `"EXIT"` when swapping
-  `stubClient` → `RealClient`, else expect `NotImplementedError` at runtime.
+  1-of-1 dev multisig via `@sqds/multisig`. Builder A will pick this up
+  alongside Squads UI wiring (next slice).
 - **Tick-rate, rate-limit + write-idempotency — resolved in PRD §2.4 FR-5b/FR-8b.**
   `run.ts`'s tick-driven loop is safe: read throttles to 5s; write absorbs
   `RebalanceTooSoon` (30s) silently. No debouncing needed on Builder A's side.
 
 ## Builder A — next concrete action
 
-**Goal:** Phantom "Connect Wallet" button rendering in `/app`, connected
-to a real testnet wallet.
+**Goal:** Squads multisig + policy editor wired into the operator console.
 
-```bash
-cd app
-npx create-next-app@latest . --typescript --app --tailwind --no-src --import-alias "@/*"
-# Then install Phantom Connect React Starter Template
-# See app/README.md and Phantom Connect docs
-```
+1. Create a 1-of-1 (or 2-of-2) dev multisig via `@sqds/multisig` against
+   devnet. Hardcode the multisig PDA in `app/lib/squads.ts` for v1.
+2. Policy editor UI — sliders/inputs for drawdown, exposure caps, counterparty
+   caps. On submit: encrypt via Arcium client (Builder B's `MXE_CLUSTER_PUBKEY`
+   export) and stage a Squads multisig proposal that calls
+   `buildSetEncryptedPolicyIx` (Builder B PRD §5).
+3. Helius LaserStream → Observer wiring in `agents/src/observer.ts` (one Orca
+   pool, hardcoded for v1).
 
-**Definition of done for this slice:**
-- `bun run dev` (or `npm run dev`) renders a page
-- "Connect Wallet" button connects to Phantom on devnet
-- Connected wallet's pubkey shows in the UI
+**DoD:**
+- `bun run dev` shows a connected wallet → policy form → "Propose policy update"
+  button that produces a Squads proposal (multisig still 1-of-1, so it
+  auto-executes locally for the demo).
+- `agents/src/run.ts` boots against real Helius metrics (still on `stubClient`
+  until Builder B ships Pkg-15..22).
 
-When done: update this file's "What's shipped" + tick the Phantom item in
-[`README.md`](./README.md) Status section.
-
-**Estimated time:** 2–3 hours.
+**Estimated time:** ~6–8 hours total. Squads + form is the long pole.
 
 ## Builder B — next concrete action
 

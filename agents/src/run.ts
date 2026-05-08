@@ -4,8 +4,8 @@ import { createObserver } from "./observer";
 import { stubClient } from "./onchain-client";
 
 async function main() {
-  // TODO Builder A — D5 (2026-05-07): replace stubClient with the real
-  // @riskclaw/onchain client once Builder B ships it.
+  // TODO Builder A: swap to the real @riskclaw/onchain client when Builder B
+  // ships Pkg-15..22 (RealClient implementation).
   const onchain = stubClient;
 
   const heliusApiKey = process.env.HELIUS_API_KEY;
@@ -23,12 +23,12 @@ async function main() {
   observer.onMetrics(async (metrics) => {
     const result = await analyst.evaluate(metrics);
     if (result.breached) {
-      // TODO Builder A — D5: derive a real RebalancePlan from the
-      // institutional policy + observed metrics. Stub plan below.
+      // v1 ships only EXIT (PRD §2.2 + FR-9). REDUCE/HEDGE are typed but
+      // not yet supported by swig_delegation::execute_rebalance.
       await guardian.execute({
         positionId: metrics.positionId,
-        action: "REDUCE",
-        sizeBps: 5000,
+        action: "EXIT",
+        sizeBps: 10_000,
       });
     }
   });
