@@ -13,13 +13,13 @@ Live state for Builder B's execution. Updated as work progresses.
 
 ## Current phase
 
-**FOUNDATION** — toolchain install + workspace bootstraps + spike Q1 (Arcium kill-switch).
+**FOUNDATION** — Stream F 75% done; F-3 paused at Q1 kill-switch (Docker dependency).
 
 ```
-[●] Stream F  — Foundation        (in progress)
-[ ] Stream P  — Programs
-[ ] Stream C  — Circuit            (kill-switch checkpoint at task 12)
-[ ] Stream Pkg — Package
+[◐] Stream F  — Foundation        (F-1, F-2, F-4 done; F-3 BLOCKED on Docker)
+[ ] Stream P  — Programs           (unblocked — can start P-5 now)
+[◇] Stream C  — Circuit            (kill-switch pending; PRD §7 R1 fallback ready)
+[ ] Stream Pkg — Package           (Pkg-15 unblocked)
 [ ] Stream S  — Scripts
 [ ] Stream T  — Tests
 ```
@@ -30,10 +30,10 @@ Live state for Builder B's execution. Updated as work progresses.
 
 ### Stream F — Foundation
 
-- [ ] **F-1** Install Rust + Solana CLI (Agave 2.x) + Anchor 1.0.2 + `arcup`
-- [ ] **F-2** `anchor init . --no-git` in `/programs`
-- [ ] **F-3** `arcium init` (or Hello World setup) in `/encrypted/threshold_compare`
-- [ ] **F-4** `bun init` workspace package at `packages/onchain/`
+- [x] **F-1** Toolchain installed: Rust 1.95.0, Solana CLI 3.1.14 (Agave), Anchor 1.0.2, avm 1.0.2, Yarn 1.22.22, bun 1.3.11. Arcium toolchain (`arcup`) install **BLOCKED on Docker** — `install.arcium.com` requires Docker Desktop which is not a pure-CLI install on macOS. See Active blockers / Q1 below.
+- [x] **F-2** `anchor init programs --package-manager bun --no-git` (commit `5179cc5`). Default stub program removed; `risk_policy` + `swig_delegation` workspace members; `anchor build` exit 0.
+- [ ] **F-3** Arcis Hello World compile — **BLOCKED**, depends on F-1 Arcium toolchain
+- [x] **F-4** `packages/onchain/` bun workspace package (commit `c7c9c52`). Re-exports `OnchainClient` + shared types from `agents/src/`; typecheck exit 0 on both sides of the boundary.
 
 ### Stream P — Programs
 
@@ -110,7 +110,7 @@ Update spike resolution in `PRD.md` Section 6.
 
 | ID | Description | Owner | Action needed |
 |---|---|---|---|
-| (none yet — populate as encountered) |  |  |  |
+| **Q1-Docker** | `install.arcium.com` requires Docker Desktop. Docker Desktop on macOS is not CLI-installable (needs admin auth + kernel extension). Without Docker → no `arcup` → no `arcium` CLI → no Arcis circuit → no MPC threshold compare → no privacy thesis. | **User** | Choose: (A) install Docker Desktop locally (~10 min, https://docs.docker.com/desktop/install/mac-install/) and re-run `curl --proto '=https' --tlsv1.2 -sSfL https://install.arcium.com/ \| bash`; (B) trigger PRD §7 R1 fallback — server-side comparison with at-rest-encrypted threshold + "Arcium-ready architecture, demo-only" framing. |
 
 ---
 
