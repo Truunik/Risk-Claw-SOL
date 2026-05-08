@@ -3,7 +3,7 @@
 Coordination doc for the two-builder team. Update at the end of each working
 session — this file is the single source of truth for "where are we right now."
 
-> **Last updated:** 2026-05-06 — Builder B (PRD gaps B1–B5 closed in PR #1; BUILD_PLAN drift flagged for Builder A)
+> **Last updated:** 2026-05-08 — Builder B (Stream F 75% done: F-1 toolchain + F-2 Anchor scaffold + F-4 onchain pkg; F-3 BLOCKED on Docker)
 
 ## Where we are
 
@@ -21,8 +21,10 @@ session — this file is the single source of truth for "where are we right now.
 - `8bc3a91` — this CONTINUE.md (Builder A)
 
 **On `builder-b/foundation` (draft PR #1):**
-- `4f29b38` — CLAUDE.md repo guide
-- `575dd2e` + `c671baa` — `.planning/builder-b/{PRD.md, STATUS.md}` (full Builder B PRD with API contracts, security invariants including G1 side-channel mitigation, and 6-stream execution plan)
+- Planning surface — CLAUDE.md + PRD + STATUS (commits `4f29b38`..`75c1666`).
+- **F-2 Anchor scaffold** (`5179cc5`): `anchor build` clean for `risk_policy` + `swig_delegation`.
+- **F-4 `@riskclaw/onchain` skeleton** (`c7c9c52`): typecheck clean both sides of the boundary.
+- **F-1 toolchain installed locally**: Rust 1.95.0 / Solana 3.1.14 (Agave) / Anchor 1.0.2 / Yarn 1.22.22 / bun 1.3.11. `arcup` install is the open part — see Q1-Docker.
 
 **Verified state:**
 - `agents/` typechecks clean (`bun run typecheck` passes)
@@ -37,12 +39,15 @@ session — this file is the single source of truth for "where are we right now.
   `MXE_CLUSTER_PUBKEY`) for the institutional Squads-proposal flow. **Builder A:
   read PRD §5 and ack so Builder B can write the package.** No signature changes
   to the locked interface — these are additions only.
-- **G1 side-channel mitigation — Builder B confirm-or-override.** PRD §9 defaults
-  to option C (Analyst-only `Signer` constraint on `queue_threshold_check` + 5s
-  rate limit). Marked `REVIEW THIS CHOICE` in the PRD. Decide before coding.
-- **Arcium kill-switch (Q1)** — does `arcup` install + `threshold_compare`
-  compile on macOS? Resolve in Builder B's next session. If no, the privacy
-  thesis pivots to a documented fallback per PRD §7.
+- **🚨 Q1-Docker decision — user action.** `install.arcium.com` requires Docker
+  Desktop, which isn't pure-CLI on macOS. Choose: (A) install Docker Desktop
+  locally (~10 min, https://docs.docker.com/desktop/install/mac-install/) and
+  re-run `curl --proto '=https' --tlsv1.2 -sSfL https://install.arcium.com/ | bash`;
+  (B) trigger PRD §7 R1 fallback — server-side comparison + "Arcium-ready,
+  demo-only" framing. **F-3 + Stream C are blocked until this resolves;
+  Stream P is unblocked and starting now.**
+- **G1 mitigation** — option C is the PRD default; `REVIEW THIS CHOICE` marker
+  open until Builder B confirms or overrides before coding `queue_threshold_check`.
 - **No Squads multisig** prepared for the demo treasury. Cheap — create a
   1-of-1 dev multisig via `@sqds/multisig` in any session.
 - **⚠️ BUILD_PLAN drift — Builder A action.** Three claims in BUILD_PLAN are
@@ -88,41 +93,24 @@ When done: update this file's "What's shipped" + tick the Phantom item in
 
 ## Builder B — next concrete action
 
-**Goal:** Resolve Arcium kill-switch (Q1) — `arcup install` works + Hello World Arcis circuit compiles. Plus `anchor build` clean in `/programs`.
+**Goal:** Start P-5 + P-6 — `risk_policy::init_policy` + `RiskPolicy` account schema (PRD §2.1). Stream C is blocked behind Q1-Docker but Stream P is fully unblocked.
 
 ```bash
-# Toolchain — Solana (Agave) + Anchor 1.0.2 + Arcium (verified install paths)
-sh -c "$(curl -sSfL https://release.anza.xyz/stable/install)"
-export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
-
-cargo install --git https://github.com/solana-foundation/anchor avm --force
-avm install 1.0.2 && avm use 1.0.2
-
-cargo install arcup
-arcup install   # pulls arcium CLI + arcis compiler — Q1 KILL-SWITCH
-
-# Anchor workspace
 cd programs
-anchor init . --no-git
-anchor new risk_policy
-anchor new swig_delegation
+# edit programs/risk_policy/src/{lib.rs, state.rs, instructions/, error.rs}
+# implement RiskPolicy account per PRD §2.1 (193 bytes incl. last_check_at + last_rebalanced_at)
+# implement init_policy(ciphertext_ref, arcium_handle) per PRD §2.1 step 1
 anchor build
-
-# Arcis circuit — read https://docs.arcium.com/developers/hello-world first
-cd ../encrypted
-arcium init threshold_compare   # exact command per Hello World
+anchor test    # writes T-28 risk_policy.ts test
 ```
 
 **Definition of done:**
-- `arcup install` succeeds; Hello World Arcis circuit compiles → **Q1 = YES**;
-  if it fails → **Q1 = NO**, document fallback in `.planning/builder-b/STATUS.md` and notify Builder A
-- `anchor build` succeeds for both programs
-- `risk_policy` and `swig_delegation` scaffolded (empty handlers OK)
-- Builder A has acknowledged PR #1 §5 (integration-contract additions)
+- `RiskPolicy` account compiles with 193-byte size (#[derive(InitSpace)]).
+- `init_policy` instruction passes a happy-path Anchor test.
+- `update_policy` rejects non-vault signers (T-28 reject path).
+- No plaintext score / threshold logged anywhere (PRD §9 invariant).
 
-When done: update "What's shipped" + tick items in [`README.md`](./README.md) Status. Do NOT start `risk_policy::init_policy` until PR #1 is acknowledged — saves rework if §5 changes.
-
-**Estimated time:** 4–5 hours.
+**Estimated time:** 3–4 hours. Then continue P-7..P-10b.
 
 ## Where to read
 
