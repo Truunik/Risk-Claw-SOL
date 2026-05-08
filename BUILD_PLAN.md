@@ -3,10 +3,10 @@
 Working doc for the two-builder team. Read this before starting any work, and
 keep it updated as scope shifts.
 
-- **Hackathon:** Colosseum Frontier (arena.colosseum.org)
+- **Hackathon:** Colosseum Frontier (colosseum.com/frontier)
 - **Started:** 2026-04-27
 - **Repositioned:** 2026-05-02 (institutional risk-ops thesis; see below)
-- **Deadline:** approximately 2026-05-13
+- **Deadline:** **2026-05-11** (corrected 2026-05-08 from colosseum.com/frontier — was previously stated as 2026-05-13)
 - **Repo:** github.com/Truunik/Risk-Claw-SOL (private)
 - **Local path (Builder A):** ~/projects/RiskClaw-Sol
 
@@ -17,8 +17,7 @@ and onchain funds delegate bounded rebalancing authority to a least-privilege
 three-zone agent stack (read / compute / execute). The user's risk policy is
 enforced on-chain without ever existing on-chain — Arcium MPC compares
 encrypted thresholds against live position metrics, and the agents themselves
-never see plaintext. Execution routes through Vanish to prevent behavioral
-inference across firings.
+never see plaintext.
 
 The pitch: **"audit-grade autonomous policy enforcement for institutional
 onchain capital, with cryptographic guarantees that the policy stays private
@@ -72,10 +71,9 @@ client to Builder A — no raw RPC calls cross the boundary.
 - `/encrypted` — **Arcium** Arcis circuit
   - MPC comparison: `ciphertext_threshold > computed_risk_score`
   - Output is `{ breached: bool, score: u16 }`; threshold never decrypts
-- **Vanish** wiring for private execution path on Guardian rebalances
-- **Metaplex 014** registration — three agents as Core NFTs with their own
-  wallets (Observer / Analyst / Guardian as distinct, audit-grade onchain
-  identities)
+- **Metaplex Core (`mpl-core`)** registration — three agents as Core NFTs
+  with their own wallets (Observer / Analyst / Guardian as distinct,
+  audit-grade onchain identities, with `zone` Attributes plugin populated)
 - Anchor tests + devnet deploy script
 
 ## Integration contract
@@ -110,12 +108,13 @@ checkThresholdBreach(
   metrics: PositionMetrics
 ): Promise<ThresholdCheckResult>
 
-// Execute the rebalance through Vanish; returns the (private) tx sig.
+// Execute the rebalance and return the tx sig. Routes directly through
+// Solana for v1; Vanish v2 is a post-hackathon integration.
 executePrivateRebalance(
   plan: RebalancePlan
 ): Promise<TxSig>
 
-// Register an agent on Metaplex 014; returns the agent's Core NFT mint.
+// Register an agent on Metaplex Core; returns the agent's Core NFT mint.
 registerAgent(
   agent: AgentConfig
 ): Promise<MintAddress>
@@ -129,7 +128,11 @@ Builder B replaces it with a real implementation when ready.
 
 ## Day-by-day plan (calendar-anchored)
 
-11 days from 2026-05-02 to 2026-05-13 deadline. Tight. Every demo cut date
+> **DEADLINE CORRECTION 2026-05-08:** Frontier deadline is **2026-05-11**, not
+> 2026-05-13. Compress the tail: D9 = final demo cut + submit on 2026-05-11.
+> D10/D11 below are obsolete — kept only as a record of the original cadence.
+
+10 days from 2026-05-02 to 2026-05-11 deadline. Tight. Every demo cut date
 is non-negotiable.
 
 | Date          | Day | Builder A                                     | Builder B                                          |
@@ -140,16 +143,14 @@ is non-negotiable.
 | 2026-05-05 Tue| D3  | Helius LaserStream → Observer (one DEX)       | `risk_policy` program: ciphertext storage          |
 | 2026-05-06 Wed| D4  | Analyst orchestration + Observer→Analyst wire | `swig_delegation`: bounded exec authority          |
 | 2026-05-07 Thu| D5  | Guardian wired to onchain client              | Arcium ↔ `risk_policy` integration                 |
-| 2026-05-08 Fri| D6  | **Demo cut #1** (rough end-to-end on stubs)   | Metaplex 014: three-agent registration             |
-| 2026-05-09 Sat| D7  | Audit trail viewer + paired devnet test       | Vanish wiring for Guardian execution               |
-| 2026-05-10 Sun| D8  | Polish + edge cases + paired devnet test      | Polish + Anchor tests + paired devnet test         |
-| 2026-05-11 Mon| D9  | **Demo cut #2** (final, on real onchain)      | Final polish + bug bash                            |
-| 2026-05-12 Tue| D10 | Demo video edit + sponsor bounty submissions  | Submission packaging + repo cleanup                |
-| 2026-05-13 Wed| D11 | **Submit** before deadline                    | **Submit** before deadline                         |
+| 2026-05-08 Fri| D6  | **Demo cut #1** (rough end-to-end on stubs)   | Metaplex Core: three-agent registration             |
+| 2026-05-09 Sat| D7  | Audit trail viewer + paired devnet test       | Polish + Anchor tests                              |
+| 2026-05-10 Sun| D8  | Demo video edit + polish                      | Final polish + bug bash + repo cleanup             |
+| 2026-05-11 Mon| D9  | **Demo cut #2 + submit** before deadline      | **Submit** before deadline                         |
 
-D6 (Fri 05-08) and D9 (Mon 05-11) are demo-cut milestones — record a rough
-demo cut on those days even if features are incomplete. Real-time visual
-progress is the best forcing function we have.
+D6 (Fri 05-08) is a rough-cut milestone, D9 (Mon 05-11) is the final cut +
+submit. Record a demo cut on D6 even if features are incomplete. Real-time
+visual progress is the best forcing function we have.
 
 ## Risks to call out upfront
 
@@ -168,20 +169,16 @@ progress is the best forcing function we have.
    should literally not have the same `Keypair` import paths. Observer
    should crash if handed a signing key.
 
-3. **Vanish is a drop-in.** ~200ms added to swap finality, no UX changes,
-   no RPC changes. Safe to push to D7. Don't do it earlier — adds nothing
-   to early-flow testing.
-
-4. **Squads multisig is new** in this rewrite. For demo, a 1-of-1 or
+3. **Squads multisig is new** in this rewrite. For demo, a 1-of-1 or
    2-of-2 dev multisig is fine. Don't try to integrate full
-   institutional-grade signer flows in 11 days; show the architecture and
+   institutional-grade signer flows in 10 days; show the architecture and
    one working policy-update path through the multisig.
 
-5. **Helius LaserStream rate limits** — developer plan covers the demo,
+4. **Helius LaserStream rate limits** — developer plan covers the demo,
    but watch out during stress tests. The 50%-off Frontier offer is
    $24.50/mo if needed.
 
-6. **Hardware wallet path optional.** Phantom-with-Ledger is institutional
+5. **Hardware wallet path optional.** Phantom-with-Ledger is institutional
    gold but adds testing surface. Out of scope for v1; mention in the
    submission as a v2 path.
 
@@ -196,7 +193,7 @@ Each builder posts:
 
 Keep it in a shared doc or DM thread, not GitHub issues — speed > formality.
 
-## Demo storyboard (2 min, target shoot 2026-05-11)
+## Demo storyboard (2 min, target shoot 2026-05-10)
 
 Institutional narrative is harder to make visceral than consumer-rescue.
 Solve this with **time-pressure framing**: a treasury manager away from
@@ -215,9 +212,11 @@ their desk while the market moves.
    liquidity drops 40%. Observer's metrics light up. Analyst calls into
    Arcium. "Threshold check: encrypted in, encrypted out." Result:
    `breached = true`.
-5. **Private execution (1:20–1:45).** Guardian executes via Vanish. Show
-   the rebalance tx — but obscured: "Routed through Vanish. Behavioral
-   inference impossible across firings." Position recovered.
+5. **Bounded execution (1:20–1:45).** Guardian executes via Swig delegation.
+   Show the rebalance tx with the slippage gate firing onchain: "Bounded by
+   policy — the Guardian's keypair could not exceed this if it tried.
+   Behavioral inference resistance via Vanish v2 is on the post-hackathon
+   roadmap." Position recovered.
 6. **Audit trail (1:45–2:00).** Cut to the audit viewer: every action
    signed by an agent's Core NFT, every delegation traceable. Voiceover:
    "Audit-grade automation. The policy stayed private. Even from the
@@ -225,19 +224,19 @@ their desk while the market moves.
 
 Keep it tight. Judges watch hundreds of these.
 
-## Submission checklist (2026-05-12)
+## Submission checklist (2026-05-10)
 
 - [ ] All sponsor integrations listed in submission with links to code
 - [ ] Squads multisig created for the project (Altitude/Squads sponsor)
 - [ ] Demo video uploaded (YouTube unlisted is fine)
 - [ ] Repo set to public OR access granted to Colosseum judges
-- [ ] arena.colosseum.org submission form completed
-- [ ] Sponsor-specific bounty submissions filed:
-  - [ ] Vanish $10k integration bounty
-  - [ ] Arcium request-for-product (encrypted DeFi primitive)
-  - [ ] Phantom Connect track
-  - [ ] Helius developer track
-  - [ ] Swig agentic-DeFi track
-  - [ ] Metaplex 014 agent registry track
+- [ ] colosseum.com/frontier submission form completed
+- [ ] Sponsor-track submissions filed (verified Frontier supporters only —
+      Altitude · Phantom · Arcium · Raydium · Coinbase · World · MoonPay ·
+      Metaplex · Privy · Reflect · Superteam):
+  - [ ] Phantom Connect track (`/app` operator wallet)
+  - [ ] Altitude / Squads V4 (multisig-gated policy at `risk_policy::update_policy`)
+  - [ ] Arcium request-for-product (encrypted DeFi primitive — `threshold_compare`)
+  - [ ] Metaplex Core agent identity track (`scripts/register-agents.ts`)
 - [ ] README claims match code (every "agents never see plaintext" claim
   must hold against a code review)

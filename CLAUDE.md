@@ -5,8 +5,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project context
 
 RiskClaw-Sol is a **Colosseum Frontier hackathon** submission. Started 2026-04-27,
-deadline ~2026-05-13. Optimize for shipping a working demo by the deadline over
-architectural purity.
+deadline **2026-05-11** (verified on colosseum.com/frontier 2026-05-08; was
+previously stated as 2026-05-13). Optimize for shipping a working demo by the
+deadline over architectural purity.
 
 **Current thesis (repositioned 2026-05-02):** *audit-grade autonomous policy
 enforcement for institutional onchain capital, with cryptographic guarantees
