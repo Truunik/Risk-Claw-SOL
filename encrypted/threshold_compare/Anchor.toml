@@ -7,7 +7,8 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-threshold_compare = "8xsGTJzqzXoY2ta89wgLw6R8iX6bQWpq1yKerQdxo1e2"
+# Reference host program removed; real host lives in /programs/programs/risk_policy
+# and gets its program id assigned via `anchor keys sync` in that workspace.
 
 [provider]
 cluster = "localnet"
