@@ -13,12 +13,12 @@ Live state for Builder B's execution. Updated as work progresses.
 
 ## Current phase
 
-**FOUNDATION** — Stream F 75% done; F-3 paused at Q1 kill-switch (Docker dependency).
+**FOUNDATION COMPLETE.** Q1 kill-switch resolved (Docker via OrbStack → Arcium 0.9.7 working). Stream F 100%; Stream C 2/3 done with `compare` circuit live.
 
 ```
-[◐] Stream F  — Foundation        (F-1, F-2, F-4 done; F-3 BLOCKED on Docker)
-[ ] Stream P  — Programs           (unblocked — can start P-5 now)
-[◇] Stream C  — Circuit            (kill-switch pending; PRD §7 R1 fallback ready)
+[●] Stream F  — Foundation        (F-1, F-2, F-3, F-4 all done)
+[ ] Stream P  — Programs           (unblocked — start P-5)
+[◐] Stream C  — Circuit            (C-12 + C-13 done; C-14 next, Q5+Q7 spikes resolved by Hello World)
 [ ] Stream Pkg — Package           (Pkg-15 unblocked)
 [ ] Stream S  — Scripts
 [ ] Stream T  — Tests
@@ -30,9 +30,9 @@ Live state for Builder B's execution. Updated as work progresses.
 
 ### Stream F — Foundation
 
-- [x] **F-1** Toolchain installed: Rust 1.95.0, Solana CLI 3.1.14 (Agave), Anchor 1.0.2, avm 1.0.2, Yarn 1.22.22, bun 1.3.11. Arcium toolchain (`arcup`) install **BLOCKED on Docker** — `install.arcium.com` requires Docker Desktop which is not a pure-CLI install on macOS. See Active blockers / Q1 below.
+- [x] **F-1** Toolchain installed: Rust 1.95.0, Solana CLI 3.1.14 (Agave), Anchor 1.0.2, Yarn 1.22.22, bun 1.3.11, Docker 29.4.0 (via OrbStack), Arcium `arcup` + `arcium` 0.9.7.
 - [x] **F-2** `anchor init programs --package-manager bun --no-git` (commit `5179cc5`). Default stub program removed; `risk_policy` + `swig_delegation` workspace members; `anchor build` exit 0.
-- [ ] **F-3** Arcis Hello World compile — **BLOCKED**, depends on F-1 Arcium toolchain
+- [x] **F-3** Arcium project scaffolded at `/encrypted/threshold_compare/` (commit `0890c77`). Hello World `add_together` circuit compiled; `arcium build` exit 0. Q1 KILL-SWITCH RESOLVED.
 - [x] **F-4** `packages/onchain/` bun workspace package (commit `c7c9c52`). Re-exports `OnchainClient` + shared types from `agents/src/`; typecheck exit 0 on both sides of the boundary.
 
 ### Stream P — Programs
@@ -48,9 +48,9 @@ Live state for Builder B's execution. Updated as work progresses.
 
 ### Stream C — Circuit
 
-- [ ] **C-12** Arcis Hello World compiles ⚠️ **KILL-SWITCH CHECKPOINT**
-- [ ] **C-13** `compare(threshold, score)` circuit with privacy-invariant comment
-- [ ] **C-14** `queue_threshold_check` + `compare_callback` Anchor wiring (after Q5+Q7)
+- [x] **C-12** Arcis Hello World compiles (commit `0890c77`). Q1 KILL-SWITCH PASSED.
+- [x] **C-13** `compare(threshold, score) -> (bool, u64)` circuit (commit `c9140f7`). Privacy invariant in code comment; `.reveal()` on the boolean; score passthrough; `arcium build` exit 0; `build/compare.arcis.ir` weighs 464M ACUs.
+- [ ] **C-14** `queue_threshold_check` + `compare_callback` Anchor wiring in `risk_policy` (Q5+Q7 resolved by Hello World scaffold — uses `queue_computation` + `ArgBuilder` + `#[arcium_callback(encrypted_ix = "compare")]`)
 
 ### Stream Pkg — Package
 
@@ -110,7 +110,7 @@ Update spike resolution in `PRD.md` Section 6.
 
 | ID | Description | Owner | Action needed |
 |---|---|---|---|
-| **Q1-Docker** | `install.arcium.com` requires Docker Desktop. Docker Desktop on macOS is not CLI-installable (needs admin auth + kernel extension). Without Docker → no `arcup` → no `arcium` CLI → no Arcis circuit → no MPC threshold compare → no privacy thesis. | **User** | Choose: (A) install Docker Desktop locally (~10 min, https://docs.docker.com/desktop/install/mac-install/) and re-run `curl --proto '=https' --tlsv1.2 -sSfL https://install.arcium.com/ \| bash`; (B) trigger PRD §7 R1 fallback — server-side comparison with at-rest-encrypted threshold + "Arcium-ready architecture, demo-only" framing. |
+| (none) | Q1-Docker resolved 2026-05-08 via OrbStack (free, no admin prompts beyond first-launch). `arcium build` exit 0 with our `compare` circuit. |  |  |
 
 ---
 
