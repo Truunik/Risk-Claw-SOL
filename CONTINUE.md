@@ -3,7 +3,7 @@
 Coordination doc for the two-builder team. Update at the end of each working
 session — this file is the single source of truth for "where are we right now."
 
-> **Last updated:** 2026-05-08 — Builder B (Stream F 75% done: F-1 toolchain + F-2 Anchor scaffold + F-4 onchain pkg; F-3 BLOCKED on Docker)
+> **Last updated:** 2026-05-08 — Builder B (Stream F 100% + C-12 + C-13 done; Q1 kill-switch resolved via OrbStack)
 
 ## Where we are
 
@@ -24,7 +24,9 @@ session — this file is the single source of truth for "where are we right now.
 - Planning surface — CLAUDE.md + PRD + STATUS (commits `4f29b38`..`75c1666`).
 - **F-2 Anchor scaffold** (`5179cc5`): `anchor build` clean for `risk_policy` + `swig_delegation`.
 - **F-4 `@riskclaw/onchain` skeleton** (`c7c9c52`): typecheck clean both sides of the boundary.
-- **F-1 toolchain installed locally**: Rust 1.95.0 / Solana 3.1.14 (Agave) / Anchor 1.0.2 / Yarn 1.22.22 / bun 1.3.11. `arcup` install is the open part — see Q1-Docker.
+- **F-3 + C-12 Arcium scaffold** (`0890c77`): `arcium init threshold_compare`; Hello World `add_together` compiles. **Q1 KILL-SWITCH RESOLVED.**
+- **C-13 `compare(threshold, score)` circuit** (`c9140f7`): replaces Hello World per PRD §2.3; privacy-invariant comment in code; `arcium build` exit 0; `build/compare.arcis.ir` (464M ACU).
+- **F-1 toolchain locally**: Rust 1.95.0 / Solana 3.1.14 / Anchor 1.0.2 / Yarn 1.22.22 / bun 1.3.11 / **Docker 29.4.0 via OrbStack** / Arcium 0.9.7.
 
 **Verified state:**
 - `agents/` typechecks clean (`bun run typecheck` passes)
@@ -39,13 +41,6 @@ session — this file is the single source of truth for "where are we right now.
   `MXE_CLUSTER_PUBKEY`) for the institutional Squads-proposal flow. **Builder A:
   read PRD §5 and ack so Builder B can write the package.** No signature changes
   to the locked interface — these are additions only.
-- **🚨 Q1-Docker decision — user action.** `install.arcium.com` requires Docker
-  Desktop, which isn't pure-CLI on macOS. Choose: (A) install Docker Desktop
-  locally (~10 min, https://docs.docker.com/desktop/install/mac-install/) and
-  re-run `curl --proto '=https' --tlsv1.2 -sSfL https://install.arcium.com/ | bash`;
-  (B) trigger PRD §7 R1 fallback — server-side comparison + "Arcium-ready,
-  demo-only" framing. **F-3 + Stream C are blocked until this resolves;
-  Stream P is unblocked and starting now.**
 - **G1 mitigation** — option C is the PRD default; `REVIEW THIS CHOICE` marker
   open until Builder B confirms or overrides before coding `queue_threshold_check`.
 - **No Squads multisig** prepared for the demo treasury. Cheap — create a
@@ -93,24 +88,27 @@ When done: update this file's "What's shipped" + tick the Phantom item in
 
 ## Builder B — next concrete action
 
-**Goal:** Start P-5 + P-6 — `risk_policy::init_policy` + `RiskPolicy` account schema (PRD §2.1). Stream C is blocked behind Q1-Docker but Stream P is fully unblocked.
+**Goal:** P-5..P-7 — `RiskPolicy` account schema + `init_policy` + `update_policy` with Squads `Signer + has_one` constraint (PRD §2.1).
 
 ```bash
 cd programs
-# edit programs/risk_policy/src/{lib.rs, state.rs, instructions/, error.rs}
-# implement RiskPolicy account per PRD §2.1 (193 bytes incl. last_check_at + last_rebalanced_at)
-# implement init_policy(ciphertext_ref, arcium_handle) per PRD §2.1 step 1
+# Edit programs/risk_policy/src/{lib.rs, state.rs, instructions/, error.rs}
+# 1. RiskPolicy account: 193 bytes via #[derive(InitSpace)] — see PRD §2.1 schema
+#    (owning_multisig_vault, ciphertext_ref [u8;64], arcium_handle [u8;32],
+#     policy_hash, updated_at, last_check_at, last_rebalanced_at, bump)
+# 2. init_policy(ciphertext_ref, arcium_handle) — Squads vault PDA Signer
+# 3. update_policy(...) — has_one = owning_multisig_vault (rejects non-vault)
 anchor build
-anchor test    # writes T-28 risk_policy.ts test
+anchor test   # T-28 risk_policy.ts
 ```
 
 **Definition of done:**
-- `RiskPolicy` account compiles with 193-byte size (#[derive(InitSpace)]).
-- `init_policy` instruction passes a happy-path Anchor test.
-- `update_policy` rejects non-vault signers (T-28 reject path).
+- `anchor build` clean.
+- T-28 happy-path: vault signs init_policy → policy PDA exists with correct fields.
+- T-28 reject-path: non-vault signer attempts update_policy → fails with `ConstraintHasOne` or `ConstraintSigner`.
 - No plaintext score / threshold logged anywhere (PRD §9 invariant).
 
-**Estimated time:** 3–4 hours. Then continue P-7..P-10b.
+**After P-5..P-7:** P-9/P-10/P-10b (swig_delegation execute_rebalance + slippage gate + B3 idempotency), then C-14 (Arcium wiring — Hello World host code already shows the exact `queue_computation` + `#[arcium_callback]` pattern).
 
 ## Where to read
 
