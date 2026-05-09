@@ -60,6 +60,8 @@ import { Connection } from "@solana/web3.js";
 import { useAnchorWallet } from "@solana/wallet-adapter-react";
 import {
   createRealClient,
+  riskPolicyIdl,         // bundled — no Anchor CLI needed
+  swigDelegationIdl,     // bundled — no Anchor CLI needed
   type OnchainClient,
 } from "@riskclaw/onchain";
 import {
@@ -67,9 +69,6 @@ import {
   RISK_POLICY_PROGRAM_ID,
   SWIG_DELEGATION_PROGRAM_ID,
 } from "../../config/devnet";
-
-import RiskPolicyIdl from "../../programs/target/idl/risk_policy.json";
-import SwigIdl from "../../programs/target/idl/swig_delegation.json";
 
 export type { OnchainClient };
 
@@ -85,11 +84,16 @@ export function useOnchainClient(): OnchainClient | null {
     connection,
     wallet,
     cluster: "devnet",
-    riskPolicyIdl: RiskPolicyIdl as never,
-    swigDelegationIdl: SwigIdl as never,
+    riskPolicyIdl: riskPolicyIdl as never,
+    swigDelegationIdl: swigDelegationIdl as never,
   });
 }
 ```
+
+**The IDLs ship bundled inside the package** — frozen snapshot of the ABIs
+deployed to devnet at PR #4. No `anchor build` on Builder A's device needed.
+When programs are redeployed, Builder B regenerates from `programs/target/idl/`
+into `packages/onchain/src/idl/`.
 
 ---
 

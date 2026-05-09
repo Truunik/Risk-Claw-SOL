@@ -1,0 +1,275 @@
+{
+  "address": "9ECtiz1EnfKnVDYFKn4GofXGeoCZHupqN2GPkcgL9zBo",
+  "metadata": {
+    "name": "swig_delegation",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "execute_rebalance",
+      "docs": [
+        "Bounded rebalance executor with B3 idempotency + slippage gate.",
+        "PRD tasks P-9 / P-10 / P-10b. AC-5/AC-6/AC-7/AC-13 in PRD §8.",
+        "",
+        "The full Swig CPI (`sign_v1`) wiring lands in P-11 once the Q2 spike",
+        "resolves the Swig SDK API. v1 ships the gate + audit event only."
+      ],
+      "discriminator": [
+        36,
+        232,
+        110,
+        192,
+        96,
+        226,
+        100,
+        120
+      ],
+      "accounts": [
+        {
+          "name": "policy",
+          "docs": [
+            "Used solely as a seed for `last_rebalanced` — `swig_delegation` does",
+            "not validate the RiskPolicy itself (caller is the trusted Guardian",
+            "agent; in v2 we'd require it as a remaining_account and check the",
+            "discriminator)."
+          ]
+        },
+        {
+          "name": "last_rebalanced",
+          "docs": [
+            "Per-policy idempotency anchor. Init-on-first-call."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  97,
+                  115,
+                  116,
+                  95,
+                  114,
+                  101,
+                  98,
+                  97,
+                  108,
+                  97,
+                  110,
+                  99,
+                  101,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "policy"
+              }
+            ]
+          }
+        },
+        {
+          "name": "guardian_authority",
+          "docs": [
+            "In production this is a Swig sub-authority registered as the",
+            "`zone=\"execute\"` Metaplex Core agent. T-29 unit tests use a regular",
+            "keypair — the structural integrity of the rate-limit + slippage gate",
+            "is what's verified here. Swig sub-authority enforcement is verified",
+            "in S-27b end-to-end."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "policy_key",
+          "type": "pubkey"
+        },
+        {
+          "name": "action",
+          "type": {
+            "defined": {
+              "name": "RebalanceAction"
+            }
+          }
+        },
+        {
+          "name": "size_bps",
+          "type": "u16"
+        },
+        {
+          "name": "max_slippage_bps",
+          "type": "u16"
+        },
+        {
+          "name": "expected_out",
+          "type": "u64"
+        },
+        {
+          "name": "min_out",
+          "type": "u64"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "LastRebalanced",
+      "discriminator": [
+        100,
+        132,
+        246,
+        63,
+        85,
+        27,
+        102,
+        31
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "RebalanceExecutedEvent",
+      "discriminator": [
+        114,
+        34,
+        215,
+        49,
+        130,
+        101,
+        33,
+        2
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "RebalanceTooSoon",
+      "msg": "execute_rebalance called within idempotency window (30s)"
+    },
+    {
+      "code": 6001,
+      "name": "SlippageTooHigh",
+      "msg": "slippage check failed: min_out below max_slippage tolerance"
+    },
+    {
+      "code": 6002,
+      "name": "NotImplemented",
+      "msg": "rebalance action not implemented in v1 (only Exit ships)"
+    },
+    {
+      "code": 6003,
+      "name": "InvalidSize",
+      "msg": "size_bps must be <= 10_000"
+    }
+  ],
+  "types": [
+    {
+      "name": "LastRebalanced",
+      "docs": [
+        "Per-policy write-side rate-limit anchor for B3 idempotency (PRD §9).",
+        "",
+        "Owned by `swig_delegation`. Seeds = `[b\"last_rebalanced\", policy.key()]`.",
+        "`policy.key()` is the public key of the RiskPolicy account managed by the",
+        "`risk_policy` program — the seed binds this PDA to that policy without",
+        "requiring cross-program writes.",
+        "",
+        "Total size: 8 (discriminator) + 9 = 17 bytes."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "timestamp",
+            "docs": [
+              "Solana clock at the most recent successful `execute_rebalance`. Zero",
+              "at first-init via `init_if_needed`."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "PDA bump."
+            ],
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RebalanceAction",
+      "docs": [
+        "Three rebalance actions defined for the type system. v1 only ships `Exit`;",
+        "`Reduce` and `Hedge` exist for boundary stability with the locked",
+        "`RebalancePlan.action` enum on Builder A's TS side (see PRD FR-9)."
+      ],
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Reduce"
+          },
+          {
+            "name": "Exit"
+          },
+          {
+            "name": "Hedge"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RebalanceExecutedEvent",
+      "docs": [
+        "Emitted on every successful execute_rebalance — Builder A's audit trail",
+        "viewer (`/app/audit`) subscribes to this. PRD §2.2 + §11."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "policy",
+            "type": "pubkey"
+          },
+          {
+            "name": "guardian_authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "action",
+            "type": {
+              "defined": {
+                "name": "RebalanceAction"
+              }
+            }
+          },
+          {
+            "name": "size_bps",
+            "type": "u16"
+          },
+          {
+            "name": "ts",
+            "type": "i64"
+          }
+        ]
+      }
+    }
+  ],
+  "constants": [
+    {
+      "name": "SEED",
+      "type": "string",
+      "value": "\"anchor\""
+    }
+  ]
+}
