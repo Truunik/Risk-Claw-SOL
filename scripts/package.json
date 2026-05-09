@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "create-multisig": "bun run create-multisig.ts",
+    "deploy-devnet": "bun run deploy-devnet.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
