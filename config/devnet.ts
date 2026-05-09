@@ -21,7 +21,7 @@ export const SQUADS_V4_PROGRAM_ID = "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf
 // Populated by scripts/create-multisig.ts — the dev multisig that owns the
 // RiskClaw policy. 1-of-1 for the demo (operator is also the only signer).
 // `null` until create-multisig.ts runs and writes back into this file.
-export const DEV_MULTISIG: string | null = null;
+export const DEV_MULTISIG: string | null = "BpwBRaBoHj2it821Knv2WpKB67gC6rgfg7KRdBNHHqme";
 
 // Builder B writes program IDs here once the Anchor programs are deployed.
 // Until then, both are `null` and the app/agents stay on the local stub.
