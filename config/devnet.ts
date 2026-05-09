@@ -25,5 +25,5 @@ export const DEV_MULTISIG: string | null = "BpwBRaBoHj2it821Knv2WpKB67gC6rgfg7KR
 
 // Builder B writes program IDs here once the Anchor programs are deployed.
 // Until then, both are `null` and the app/agents stay on the local stub.
-export const RISK_POLICY_PROGRAM_ID: string | null = null;
-export const SWIG_DELEGATION_PROGRAM_ID: string | null = null;
+export const RISK_POLICY_PROGRAM_ID: string | null = "FNThNjwxtdVSttM1Q9R81pKbiSF7jCzt8vE22A4PHrzN";
+export const SWIG_DELEGATION_PROGRAM_ID: string | null = "9ECtiz1EnfKnVDYFKn4GofXGeoCZHupqN2GPkcgL9zBo";

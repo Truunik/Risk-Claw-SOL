@@ -110,10 +110,15 @@ pub struct RiskPolicy {
     pub policy_hash:           [u8; 32],  // 32 — sha256(ciphertext_ref || arcium_handle)
     pub updated_at:            i64,       //  8 — Solana clock at last write
     pub last_check_at:         i64,       //  8 — read-side rate limit for queue_threshold_check (G1)
-    pub last_rebalanced_at:    i64,       //  8 — write-side rate limit for execute_rebalance (B3)
     pub bump:                  u8,        //  1
 }
-// Total: 8 (discriminator) + 185 = 193 bytes
+// Total: 8 (discriminator) + 177 = 185 bytes
+//
+// NOTE on B3 (write-side idempotency): `last_rebalanced_at` was originally
+// proposed here, but Solana account-ownership prevents `swig_delegation` from
+// writing to an account owned by `risk_policy`. The field moved to a
+// `LastRebalanced` PDA owned by `swig_delegation` (see §2.2). Audit linkage
+// preserved via seeds = [b"last_rebalanced", policy.key()].
 ```
 
 **Output schema (events):**
