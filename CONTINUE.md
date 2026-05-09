@@ -3,132 +3,114 @@
 Coordination doc for the two-builder team. Update at the end of each working
 session — this file is the single source of truth for "where are we right now."
 
-> **Last updated:** 2026-05-09 — Builder A (dev multisig live + `DEV_MULTISIG`
-> populated; merged Builder B's CONTINUE.md update advertising **PR #4** —
-> programs deployed to devnet, RealClient ready for the `appStubClient` swap)
+> **Last updated:** 2026-05-09 (end of D7) — Builder A (merged **PR #4** at
+> `68ca34a`; `encryptThreshold` swap shipped on `app/policy`; Helius API key
+> wired in `agents/.env` + verified — observer ws connects clean)
 
 ## Where we are
 
 - **Calendar date:** 2026-05-09
 - **Day per plan:** D7 of 10 (see [`BUILD_PLAN.md`](./BUILD_PLAN.md))
 - **Deadline:** **2026-05-11** — **2 days remaining**
-- **State:** Both builders unblocked on each other. Top gate: **Builder A
-  reviews + merges PR #4**, then swaps `appStubClient` → `createRealClient`.
-  Compressed plan holds: D9 = final cut + submit on 2026-05-11.
+- **State:** PR #4 in `main`, programs live on devnet, Helius streaming, real
+  encryptThreshold producing 64-byte ciphertext with `RISKCLAW_V1_STUB` tag.
+  Top gate now: **RealClient swap blocked** — `@riskclaw/onchain` doesn't
+  bundle the program IDLs, and `anchor build` isn't on Builder A's device.
+  Maroua needs to commit `programs/target/idl/*.json` into the package (or
+  Builder A installs Anchor CLI). D8 = audit-events wire + paired devnet test.
 
 ## What's shipped
 
 **On `main`:**
-- `c8406d3` PR #1 — Builder B planning surface (PRD, STATUS, CLAUDE.md, Anchor
-  scaffold, `@riskclaw/onchain` skeleton, Arcium `threshold_compare` @ 464M ACU).
+- `c8406d3` PR #1 — Builder B planning surface (PRD, STATUS, Anchor scaffold,
+  `@riskclaw/onchain` skeleton, Arcium `threshold_compare` @ 464M ACU).
 - `ae68fee` PR #2 — Builder A foundation (Phantom + G1 ack + deadline +
   `agents/src/run.ts` REDUCE→EXIT).
 - `75f695e` PR #3 — Builder A's `app/` (policy + audit), Helius observer,
   Squads scaffold, `config/devnet.ts`.
-
-**On `builder-b/foundation` (PR #4 open, awaiting Builder A review):**
-- `78c6118` **P-5/P-6/P-7** — RiskPolicy schema (185 bytes) + init/update with
-  Squads `Signer + has_one`. T-28 ✓ 3/3.
-- `56ac103` **P-9/P-10/P-10b** — `swig_delegation::execute_rebalance` with B3
-  idempotency + slippage gate + `NotImplemented` for Reduce/Hedge. T-29 + T-29b ✓ 5/5.
-- `5d16261` **Pkg-15..22** — `RealClient` + 7 typed errors + `encryptThreshold`
-  (placeholder packing, `RISKCLAW_V1_STUB` tag at bytes [48..64]) + ids/PDAs +
-  FR-5b throttle cache + FR-8b idempotency catch. T-31b + T-32 ✓ 11/11 (251ms).
-- `6d3b562` **S-24** — `deploy-devnet.ts` (idempotent, `--dry-run`,
-  auto-patches `config/devnet.ts`).
-- Schema fix in P-9: `last_rebalanced_at` moved off `RiskPolicy` →
-  `LastRebalanced` PDA owned by `swig_delegation` (cross-program ownership).
-  193 → 185 bytes; PRD §2.1 + §9 updated.
+- `68ca34a` **PR #4** — Builder B's full implementation: `risk_policy` +
+  `swig_delegation` Anchor programs (P-5..P-10b), `RealClient` + typed errors
+  + FR-5b/FR-8b throttle (Pkg-15..22), `deploy-devnet.ts` (S-24), devnet
+  smoke (3/3 onchain). Programs live: `risk_policy = FNThNj…PHrzN`,
+  `swig_delegation = 9ECtiz…L9zBo`. 8/8 anchor + 11/11 bun tests pass per
+  Maroua + verified locally (bun side).
+- (uncommitted, ready) `app/policy` swap: `encryptThresholdStub` →
+  `encryptThreshold` from `@riskclaw/onchain`. Real `RISKCLAW_V1_STUB` tag at
+  bytes [48..64]; `app/lib/encrypt.ts` deleted (orphan). `bunx tsc` clean.
 
 **Devnet — live (2026-05-09):**
-- **Programs deployed** (PR #4 wires these into `config/devnet.ts`):
-  - `risk_policy = FNThNjwxtdVSttM1Q9R81pKbiSF7jCzt8vE22A4PHrzN`
-  - `swig_delegation = 9ECtiz1EnfKnVDYFKn4GofXGeoCZHupqN2GPkcgL9zBo`
-  - Builder B authority: `2JAmdww5RrzMhFsYcypagtNuHE466vbQ1wBKstuDs24W`
-    (2.76 SOL remaining).
-- **Dev multisig** — Squads V4 1-of-1 PDA
-  `BpwBRaBoHj2it821Knv2WpKB67gC6rgfg7KRdBNHHqme` (creation tx
-  `4jM44923LgX9nPpsVGst5tyThMCGZgAiTXpf9PXwQSVWPcgv3HGhvH2Lr2Nc1vvV6R1ipKZRbUj8az2FXAJpNVm2`).
-  Operator + sole signer = `Fzfjam6sgSjRSPNAZPZCpfwmRyAKvwSgZMvzLqcmsNnP`
-  (Builder A's devnet keypair at `~/.config/solana/id.json`, 5 SOL via web faucet).
-  `config/devnet.ts::DEV_MULTISIG` populated; policy editor submit gate
-  (`isMultisigConfigured()`) flips live with Phantom connected.
-- Solana CLI 3.1.15 installed at
-  `/Users/truuhome/.local/share/solana/install/active_release/bin`.
+- Programs: `risk_policy = FNThNj…PHrzN`, `swig_delegation = 9ECtiz…L9zBo`
+  (Builder B authority `2JAmdww…s24W`, ~2.76 SOL remaining).
+- Dev multisig: Squads V4 1-of-1 PDA `BpwBRaBoHj2it821Knv2WpKB67gC6rgfg7KRdBNHHqme`
+  (operator + sole signer = `Fzfjam6sgSjRSPNAZPZCpfwmRyAKvwSgZMvzLqcmsNnP`,
+  Builder A's keypair at `~/.config/solana/id.json`, 4.99 SOL).
+  `config/devnet.ts::DEV_MULTISIG` populated.
+- Helius: developer plan key in `agents/.env`. `bun run dev` opens
+  `wss://devnet.helius-rpc.com` clean (`[observer] ws open (1 positions)`).
+- Solana CLI 3.1.15. Anchor CLI **not** on Builder A's device.
 
 **Verified state:**
-- `agents/` typecheck clean (`bun run typecheck` passes).
-- `app/` typecheck clean (`bunx tsc --noEmit` clean post-`DEV_MULTISIG` edit).
-- `scripts/` typecheck clean; `bun run create-multisig` succeeds end-to-end.
-- `programs/`: `risk_policy` + `swig_delegation` real implementations shipped — 8/8 anchor tests pass.
-- `packages/onchain`: **`RealClient` shipped** with FR-5b cache + FR-8b
-  idempotency + 7 typed errors + `encryptThreshold`. 11/11 bun tests pass.
+- `agents/` + `app/` + `scripts/` + `packages/onchain` typecheck clean.
+- `packages/onchain`: 11/11 bun tests pass locally (T-31b throttle + T-32 encrypt).
+- `programs/`: 8/8 anchor tests pass per Maroua (not re-verified locally — no Anchor CLI).
 - `encrypted/threshold_compare`: Arcis IR compiled (compare circuit, 464M ACU).
 
 ## What's blocked / pending coordination
 
-- **PR #4 review + merge** — Builder A action; Builder B's entire devnet
-  surface (program IDs in `config/devnet.ts`, `RealClient`, deploy script) is
-  gated on this. After merge: Builder A pulls `main` and swaps `app/lib/onchain.ts`.
-- **Helius API key** — `agents/.env` not yet created; observer can't connect
-  to `wss://devnet.helius-rpc.com` until `HELIUS_API_KEY` is set. Builder A:
-  sign up at helius.dev (developer plan) → `cp agents/.env.example
-  agents/.env` → paste devnet key. ~5 min.
-- **Real Arcium encryption** — Builder B's `encryptThreshold` ships placeholder
-  packing for v1 (auditable `RISKCLAW_V1_STUB` tag). Real RescueCipher
-  envelope wires up post-C-14 when `MXE_CLUSTER_PUBKEY` is set. PRD §9: no
-  plaintext logging on the swap.
+- **RealClient swap blocked on IDL bundling** — `app/lib/onchain.ts` still
+  uses `appStubClient`. `createRealClient` requires `riskPolicyIdl` +
+  `swigDelegationIdl` JSONs (produced by `anchor build`). The deploy used
+  `--no-idl`, so on-chain fetch is closed too. **Action: Builder B commits
+  `programs/target/idl/{risk_policy,swig_delegation}.json` into
+  `@riskclaw/onchain` and re-exports them**, OR Builder A installs Anchor
+  CLI via `cargo install --git https://github.com/coral-xyz/anchor avm`
+  (~5–10 min). Builder B path is cheaper.
+- **Real Arcium encryption** — `encryptThreshold` ships v1 placeholder
+  packing (auditable `RISKCLAW_V1_STUB` tag). Real RescueCipher envelope
+  wires up post-C-14 when `MXE_CLUSTER_PUBKEY` is set. PRD §9: no plaintext
+  logging on the swap.
 - **C-14 Arcium runtime — deferred.** Localnet startup wall blocks the E2E
   test path; v1 ships with FR-5b stub returning a deterministic mock from
-  `drawdownBps`. PRD §7 R1 fallback documented. Stretch goal post-PR-#4 merge.
-- **Tick-rate / rate-limit / write-idempotency — resolved** in PRD §2.4
-  FR-5b/FR-8b. Observer's 5s tick + `run.ts` analyst loop are safe.
+  `drawdownBps`. PRD §7 R1 fallback documented. Stretch goal.
 
 ## Builder A — next concrete action
 
-**Goal:** Merge PR #4, swap to `RealClient`, run paired devnet test.
+**Goal:** Land RealClient swap, wire live audit events, run paired devnet test.
 
-1. **Review + merge PR #4** (`builder-b/foundation` → `main`). After merge,
-   pull `main` so `RISK_POLICY_PROGRAM_ID` + `SWIG_DELEGATION_PROGRAM_ID`
-   land locally.
-2. **Helius:** sign up at helius.dev → devnet API key → `cp agents/.env.example
-   agents/.env` → paste `HELIUS_API_KEY`. Verify with `cd agents && bun run
-   dev` (Helius WS subscriptions on POSITION_IDS, no auth errors).
-3. **Swap stubs to real:** `app/lib/onchain.ts` import `createRealClient` from
-   `@riskclaw/onchain` instead of `appStubClient`; replace
-   `encryptThresholdStub` with `encryptThreshold` from the package. Form/UI
-   shapes are isomorphic — no UI change required.
-4. **Wire `/app/audit` to live program events** — replace `generateDemoEvents()`
+1. **Commit + push the encrypt swap** (already on disk):
+   `app/app/policy/page.tsx` mod + `app/lib/encrypt.ts` deletion.
+   `feat(app): swap encryptThresholdStub → @riskclaw/onchain encryptThreshold`.
+2. **Wait on Builder B's IDL bundle**, then swap `appStubClient` →
+   `createRealClient`. Pass `connection` from `useConnection()` and a wallet
+   adapter from `useWallet()` shimmed to `anchor.Wallet`. Form/UI shapes are
+   isomorphic — no UI change.
+3. **Wire `/app/audit` to live program events** — replace `generateDemoEvents()`
    with `program.addEventListener("ThresholdCheckEvent", …)` +
    `"RebalanceExecutedEvent"`. `AuditEvent` shapes already mirror Builder B's
    payloads.
-5. **Paired devnet test with Builder B:** Phantom → policy editor → propose →
-   multisig (`BpwBRaBoHj2it821Knv2WpKB67gC6rgfg7KRdBNHHqme`) executes →
-   observer drift breach → audit page renders the real event.
+4. **Paired devnet test:** Phantom → policy editor → propose → multisig
+   `BpwBRa…HHqme` executes → observer drift breach → audit page renders the
+   real event.
 
 **DoD:**
-- PR #4 merged; program IDs live in `config/devnet.ts`.
-- Helius observer connects on devnet with no auth error.
-- Policy editor submit produces a real `setEncryptedPolicy` tx (1-of-1 auto-execute).
-- `/app/audit` lists at least one real `ThresholdCheckEvent` after a paired
-  demo run.
+- Policy editor submit produces a real `setEncryptedPolicy` tx (1-of-1 auto-exec).
+- `/app/audit` lists at least one real `ThresholdCheckEvent` post-paired run.
 
-**Estimated time:** ~3–4 hours of net Builder A work.
+**Estimated time:** ~2–3 hours net once IDLs land.
 
 ## Builder B — next concrete action
 
-**Goal:** Paired devnet test with Builder A (gated on PR #4 merge).
+**Goal:** Unblock RealClient swap, then paired devnet test.
 
-1. Builder A reviews + merges PR #4.
-2. Builder A pulls main + swaps `app/lib/onchain.ts` → `createRealClient`.
-3. Multisig already live (`DEV_MULTISIG` populated 2026-05-09).
-4. Paired session: Builder A submits policy via `/app/policy` → real
-   `setEncryptedPolicy` tx; Builder B verifies on Solana Explorer +
-   `RebalanceExecutedEvent` fires after a synthetic breach.
+1. **Bundle the program IDLs** in `@riskclaw/onchain`. Commit
+   `programs/target/idl/{risk_policy,swig_delegation}.json` and re-export
+   from `packages/onchain/src/index.ts` so Builder A can wire
+   `createRealClient` without `anchor build`. This is the critical-path gate.
+2. Paired session post-swap: verify `setEncryptedPolicy` + a synthetic
+   `RebalanceExecutedEvent` fire on devnet.
 
-**Stretch (if time):** C-14 Arcium runtime wiring. Localnet startup wall
-remains; alternative is `anchor test` against Rust-only T-30b (Analyst-only
-Signer rejection) without real MPC.
+**Stretch:** C-14 Arcium runtime wiring (localnet wall remains; Rust-only
+T-30b Analyst-Signer-rejection is the alternative).
 
 ## Where to read
 
