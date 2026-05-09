@@ -6,9 +6,11 @@
   "scripts": {
     "create-multisig": "bun run create-multisig.ts",
     "deploy-devnet": "bun run deploy-devnet.ts",
+    "smoke-realclient": "bun run smoke-realclient.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@anchor-lang/core": "^1.0.2",
     "@solana/web3.js": "^1.95.0",
     "@sqds/multisig": "^2.1.3"
   },
