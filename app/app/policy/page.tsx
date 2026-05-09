@@ -6,7 +6,7 @@ import { useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 
 import { appStubClient } from "@/lib/onchain";
-import { encryptThresholdStub } from "@/lib/encrypt";
+import { encryptThreshold } from "../../../packages/onchain/src/encrypt";
 import { getDevMultisig, isMultisigConfigured } from "@/lib/squads";
 
 const WalletMultiButton = dynamic(
@@ -43,12 +43,7 @@ export default function PolicyEditor() {
     if (!multisig || !connected) return;
     setState({ kind: "proposing" });
     try {
-      const ciphertext = encryptThresholdStub({
-        drawdownBps,
-        maxNotionalUSD,
-        maxSlippageBps,
-        expiresAtUnix,
-      });
+      const ciphertext = await encryptThreshold(BigInt(drawdownBps), null);
       const txSig = await appStubClient.setEncryptedPolicy(multisig, ciphertext);
       setState({ kind: "proposed", txSig });
     } catch (err) {
