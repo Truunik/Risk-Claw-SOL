@@ -64,7 +64,7 @@ Live state for Builder B's execution. Updated as work progresses.
 
 ### Stream S — Scripts
 
-- [ ] **S-23** `scripts/register-agents.ts` idempotent (deferred — Pkg-20 dependency)
+- [x] **S-23** `scripts/register-agents.ts` (commit `f76b815`). Three Core NFTs minted on devnet (Observer/Analyst/Guardian); each owned by a dedicated zone keypair under `scripts/.keys/` (gitignored); Attributes plugin populated with `zone` + `agent_pubkey`. Idempotent re-runs verify on-chain via `fetchAssetV1`.
 - [ ] **S-23b** `scripts/seed-demo.ts` — demo Orca LP into demo treasury (B4)
 - [x] **S-24** `scripts/deploy-devnet.ts` (commit `6d3b562`). Idempotent, --dry-run mode, auto-patches config/devnet.ts via regex on existing `RISK_POLICY_PROGRAM_ID` / `SWIG_DELEGATION_PROGRAM_ID` lines. Awaits operator-driven first run on devnet (needs ≥4 SOL airdropped).
 - [ ] **S-25** Arcium circuit deploy step (deferred — C-14 dependency)
@@ -81,8 +81,8 @@ Live state for Builder B's execution. Updated as work progresses.
 - [ ] **T-30b** Analyst-only signer rejection test (G1, AC-11) — deferred to C-14.
 - [x] **T-31b** Throttle cache + idempotency catch — 7/7 bun tests (commit `5d16261`).
 - [x] **T-32** `encryptThreshold` roundtrip + RISKCLAW_V1_STUB tag — 4/4 bun tests (commit `5d16261`).
-- [ ] **T-33** E2E happy path on devnet — gated on real deploy + Builder A's swap.
-- [ ] **T-34** Privacy invariant audit (code grep + tx log inspection) — final-pass review.
+- [x] **T-33** Integration smoke against deployed devnet — `smoke-realclient.ts` 3/3 PASS (commit `0f0035e`). Verifies setEncryptedPolicy, executePrivateRebalance, FR-8b cache, PDA seed match, IDL alignment.
+- [x] **T-34** Privacy invariant audit (commit `b15fd51`). PRD §9 invariants 1-4 PASS for v1; invariant 5 deferred to C-14. Full report at `.planning/builder-b/T-34-audit.md`.
 
 ---
 
