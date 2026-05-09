@@ -107,9 +107,12 @@ async function main() {
   const connection = new Connection(RPC_ENDPOINT, "confirmed");
   const balance = await connection.getBalance(wallet.publicKey);
   log(`balance: ${(balance / LAMPORTS_PER_SOL).toFixed(3)} SOL on devnet`);
-  if (!DRY_RUN && balance < 4 * LAMPORTS_PER_SOL) {
+  // Each fresh program deploy is ~1.1 SOL on devnet (rent-exempt for the
+  // ~150KB program data account). Two fresh deploys ~2.5 SOL. Re-running
+  // against an already-deployed program is a near-free upgrade.
+  if (!DRY_RUN && balance < 2.5 * LAMPORTS_PER_SOL) {
     throw new Error(
-      `wallet needs >= 4 devnet SOL for two program deploys. Run: solana airdrop 2 --url devnet (twice if rate-limited)`,
+      `wallet needs >= 2.5 devnet SOL for two program deploys. Run: solana airdrop 2 --url devnet (or use https://faucet.helius.dev if rate-limited)`,
     );
   }
 
@@ -120,7 +123,12 @@ async function main() {
   sh("anchor build", { cwd: PROGRAMS_DIR });
   sh("anchor keys sync", { cwd: PROGRAMS_DIR });
   sh("anchor build", { cwd: PROGRAMS_DIR }); // rebuild after keys sync may have rotated declare_id
-  sh("anchor deploy --provider.cluster devnet", { cwd: PROGRAMS_DIR });
+  // --no-idl: skip on-chain IDL upload. Anchor 1.0.2's IDL writer hits
+  // `InstructionFallbackNotFound` (custom error 0x65) when uploading the IDL
+  // account — our programs don't expose the idl_set_buffer fallback handler.
+  // We bundle the IDL locally in @riskclaw/onchain, so the on-chain IDL
+  // account is unnecessary for our use case.
+  sh("anchor deploy --provider.cluster devnet --no-idl", { cwd: PROGRAMS_DIR });
 
   // Read deployed program IDs from the keypair files Anchor wrote.
   const riskPolicyKp = path.join(PROGRAMS_DIR, "target/deploy/risk_policy-keypair.json");
