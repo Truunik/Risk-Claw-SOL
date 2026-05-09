@@ -704,7 +704,7 @@ This section is the heart of the audit-grade story. Every requirement here must 
 
 ### Side-channel mitigation (G1)
 
-> **REVIEW THIS CHOICE** — there are three defensible mitigations; we've picked option C with a soft option A as belt-and-suspenders. Builder B should confirm or override before execution.
+> **CONFIRMED — 2026-05-08 (Builder A).** Option C (`Signer` constraint on the Analyst agent) + soft option A (5s rate limit) is the agreed mitigation. Builder B is unblocked to write `queue_threshold_check` per the implementation notes below.
 
 The `breached` boolean returned from `checkThresholdBreach` is, in principle, a side-channel: a caller who can submit arbitrary scores and observe the boolean response can binary-search the encrypted threshold. With a u64 threshold, ~64 calls suffice to recover the plaintext. **This breaks the audit-grade pitch if not closed.**
 

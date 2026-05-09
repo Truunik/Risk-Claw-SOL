@@ -1,0 +1,18 @@
+{
+  "name": "@riskclaw-sol/scripts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "create-multisig": "bun run create-multisig.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@solana/web3.js": "^1.95.0",
+    "@sqds/multisig": "^2.1.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  }
+}
