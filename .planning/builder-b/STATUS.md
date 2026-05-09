@@ -13,15 +13,15 @@ Live state for Builder B's execution. Updated as work progresses.
 
 ## Current phase
 
-**FOUNDATION COMPLETE.** Q1 kill-switch resolved (Docker via OrbStack → Arcium 0.9.7 working). Stream F 100%; Stream C 2/3 done with `compare` circuit live.
+**Stream P + Pkg + S all in motion.** Five atomic feature commits shipped (`78c6118`, `56ac103`, `5d16261`, `6d3b562` + the merge). 19 tests green across all surfaces (3 Anchor + 5 Anchor + 11 bun). Builder A unblocked for `appStubClient` → `RealClient` swap.
 
 ```
-[●] Stream F  — Foundation        (F-1, F-2, F-3, F-4 all done)
-[ ] Stream P  — Programs           (unblocked — start P-5)
-[◐] Stream C  — Circuit            (C-12 + C-13 done; C-14 next, Q5+Q7 spikes resolved by Hello World)
-[ ] Stream Pkg — Package           (Pkg-15 unblocked)
-[ ] Stream S  — Scripts
-[ ] Stream T  — Tests
+[●] Stream F  — Foundation        100% (F-1, F-2, F-3, F-4)
+[◐] Stream P  — Programs            6/8 (P-5..P-7, P-9..P-10b done; P-11 deferred Q2)
+[◐] Stream C  — Circuit              2/3 (C-12, C-13 done; C-14 deferred — needs localnet fix)
+[◐] Stream Pkg — Package             6/8 active + 2 NotImplemented stubs (Pkg-19 Q2, Pkg-20 Metaplex)
+[◐] Stream S  — Scripts              1/3 (S-24 done; S-23 + S-23b + S-27b pending)
+[◐] Stream T  — Tests                4/8 written (T-28 + T-29/T-29b + T-31b + T-32 — 19 pass total)
 ```
 
 ---
@@ -37,14 +37,10 @@ Live state for Builder B's execution. Updated as work progresses.
 
 ### Stream P — Programs
 
-- [ ] **P-5** `anchor new risk_policy` + `RiskPolicy` account schema
-- [ ] **P-6** `risk_policy::init_policy` instruction
-- [ ] **P-7** `risk_policy::update_policy` with `Signer + has_one`
-- [ ] **P-8** Anchor unit tests for init/update
-- [ ] **P-9** `anchor new swig_delegation` + execute skeleton
-- [ ] **P-10** Slippage assertion + `RebalanceAction` enum + `NotImplemented` paths
-- [ ] **P-10b** B3 idempotency: `RebalanceTooSoon` rejection + `last_rebalanced_at` write
-- [ ] **P-11** Swig CPI wiring for `Exit` (after Q2 spike)
+- [x] **P-5/P-6/P-7** RiskPolicy schema + init_policy + update_policy with Squads `Signer + has_one` (commit `78c6118`). 185-byte account; T-28 ✓ (3/3 anchor test). Schema fix: `last_rebalanced_at` moved off RiskPolicy → swig_delegation's `LastRebalanced` PDA (Solana ownership rules).
+- [x] **P-8** T-28 covers happy path + non-vault rejection (rolled into P-5/P-7 commit).
+- [x] **P-9/P-10/P-10b** swig_delegation::execute_rebalance with B3 idempotency + slippage gate + NotImplemented for Reduce/Hedge (commit `56ac103`). T-29 + T-29b ✓ (5/5 anchor test).
+- [ ] **P-11** Swig CPI wiring for `Exit` (deferred — Q2 spike: Swig SDK API)
 
 ### Stream C — Circuit
 
@@ -54,39 +50,39 @@ Live state for Builder B's execution. Updated as work progresses.
 
 ### Stream Pkg — Package
 
-- [ ] **Pkg-15** `OnchainClient` import + `RealClient` skeleton
-- [ ] **Pkg-16** `setEncryptedPolicy` real implementation
-- [ ] **Pkg-17** `checkThresholdBreach` (queue + await callback)
-- [ ] **Pkg-17b** FR-5b read-throttle cache in `RealClient`
-- [ ] **Pkg-18** `executePrivateRebalance` (Orca quote + Swig wrapper)
-- [ ] **Pkg-18b** FR-8b idempotency catch (`RebalanceTooSoon` → prior `TxSig`)
-- [ ] **Pkg-19** `delegateToGuardian` (Swig addAuthority — after Q2)
-- [ ] **Pkg-20** `registerAgent` (Metaplex Core mint via Umi)
-- [ ] **Pkg-21** `encryptThreshold` helper
-- [ ] **Pkg-22** Typed errors module
+- [x] **Pkg-15..22 atomic** RealClient + errors + encrypt + ids + tests (commit `5d16261`). 11/11 bun tests passing in 251ms.
+  - [x] **Pkg-15** RealClient class + `createRealClient` factory
+  - [x] **Pkg-16** `setEncryptedPolicy` real (Anchor program init/update via Squads-vault wallet)
+  - [x] **Pkg-17** `checkThresholdBreach` v1 stub (deterministic mock from drawdownBps; real Arcium runtime in C-14)
+  - [x] **Pkg-17b** FR-5b read-throttle cache (5s window, per-policy `Map<positionId, {lastCheckedAt, lastResult}>`)
+  - [x] **Pkg-18** `executePrivateRebalance` real (calls swig_delegation::executeRebalance with EXIT action)
+  - [x] **Pkg-18b** FR-8b idempotency catch (`RebalanceTooSoon` → prior cached `TxSig`)
+  - [ ] **Pkg-19** `delegateToGuardian` — throws NotImplementedError (deferred, Q2)
+  - [ ] **Pkg-20** `registerAgent` — throws NotImplementedError (deferred, Metaplex Core wiring)
+  - [x] **Pkg-21** `encryptThreshold` v1 placeholder packing with `RISKCLAW_V1_STUB` audit tag; `MXE_CLUSTER_PUBKEY` placeholder export
+  - [x] **Pkg-22** 7 typed error classes (RiskclawError base + ArciumTimeout/ClusterUnavailable/SlippageRejected/NotImplemented/MultisigSignatureRejected/OnchainRejection)
 
 ### Stream S — Scripts
 
-- [ ] **S-23** `scripts/register-agents.ts` idempotent
-- [ ] **S-23b** `scripts/seed-demo.ts` — demo Orca LP into demo treasury (B4, see PRD §2.7)
-- [ ] **S-24** `scripts/deploy-devnet.ts` skeleton
-- [ ] **S-25** Arcium circuit deploy in deploy script (after Q7)
-- [ ] **S-26** `config/devnet.ts` schema and writers
-- [ ] **S-27** Clean-machine end-to-end smoke run (manual)
+- [ ] **S-23** `scripts/register-agents.ts` idempotent (deferred — Pkg-20 dependency)
+- [ ] **S-23b** `scripts/seed-demo.ts` — demo Orca LP into demo treasury (B4)
+- [x] **S-24** `scripts/deploy-devnet.ts` (commit `6d3b562`). Idempotent, --dry-run mode, auto-patches config/devnet.ts via regex on existing `RISK_POLICY_PROGRAM_ID` / `SWIG_DELEGATION_PROGRAM_ID` lines. Awaits operator-driven first run on devnet (needs ≥4 SOL airdropped).
+- [ ] **S-25** Arcium circuit deploy step (deferred — C-14 dependency)
+- [x] **S-26** `config/devnet.ts` schema is set by Builder A (PR #3); deploy-devnet.ts populates the program ID slots.
+- [ ] **S-27** Clean-machine end-to-end smoke run (manual; gated on real devnet deploy)
 - [ ] **S-27b** `scripts/e2e-smoke.ts` — automated end-to-end (B4, see PRD §2.8)
 
 ### Stream T — Tests
 
-- [ ] **T-28** `risk_policy` Anchor tests
-- [ ] **T-29** `swig_delegation` Anchor tests
-- [ ] **T-29b** `RebalanceTooSoon` rejection test (B3, AC-13)
-- [ ] **T-30** Arcis circuit tests (3 scenarios)
-- [ ] **T-30b** Analyst-only signer rejection test (G1, AC-11)
-- [ ] **T-31** `RealClient` unit tests
-- [ ] **T-31b** Throttle cache tests — FR-5b read + FR-8b write (AC-12 + AC-13 client side)
-- [ ] **T-32** `encryptThreshold` roundtrip test
-- [ ] **T-33** E2E happy path on devnet (now via S-27b automation)
-- [ ] **T-34** Privacy invariant audit (code grep + tx log inspection)
+- [x] **T-28** `risk_policy` Anchor tests — 3/3 (AC-1, AC-1b, AC-2 in commit `78c6118`).
+- [x] **T-29** `swig_delegation` Anchor tests — 3/3 (AC-5, AC-6, AC-7 in commit `56ac103`).
+- [x] **T-29b** `RebalanceTooSoon` rejection — pass with state-not-advanced assertion (commit `56ac103`).
+- [ ] **T-30** Arcis circuit tests (3 scenarios) — deferred until C-14 enables `arcium test`.
+- [ ] **T-30b** Analyst-only signer rejection test (G1, AC-11) — deferred to C-14.
+- [x] **T-31b** Throttle cache + idempotency catch — 7/7 bun tests (commit `5d16261`).
+- [x] **T-32** `encryptThreshold` roundtrip + RISKCLAW_V1_STUB tag — 4/4 bun tests (commit `5d16261`).
+- [ ] **T-33** E2E happy path on devnet — gated on real deploy + Builder A's swap.
+- [ ] **T-34** Privacy invariant audit (code grep + tx log inspection) — final-pass review.
 
 ---
 
