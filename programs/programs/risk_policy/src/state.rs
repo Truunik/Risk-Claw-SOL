@@ -3,7 +3,13 @@ use anchor_lang::prelude::*;
 /// Encrypted risk policy stored on-chain. Mutated only by the owning Squads V4
 /// vault PDA (verified via `Signer + has_one` Anchor constraints, see PRD §9).
 ///
-/// Total size: 8 (discriminator) + 185 = 193 bytes (PRD §2.1).
+/// Total size: 8 (discriminator) + 177 = 185 bytes (PRD §2.1).
+///
+/// NOTE on B3: `last_rebalanced_at` was originally specified here but cannot
+/// live on this account — `swig_delegation::execute_rebalance` is owned by a
+/// different program and Solana account ownership forbids cross-program
+/// writes. The field moved to a `LastRebalanced` PDA owned by `swig_delegation`
+/// (seeds = [b"last_rebalanced", policy.key()]). See PRD §2.2 + §9.
 #[account]
 #[derive(InitSpace)]
 pub struct RiskPolicy {
@@ -29,10 +35,6 @@ pub struct RiskPolicy {
     /// Read-side rate limit for `queue_threshold_check` (G1, PRD §9).
     /// Enforced when C-14 lands; P-5..P-7 just initializes to 0.
     pub last_check_at: i64,               //  8
-
-    /// Write-side rate limit for `swig_delegation::execute_rebalance` (B3,
-    /// PRD §9). Enforced when P-10b lands; P-5..P-7 just initializes to 0.
-    pub last_rebalanced_at: i64,          //  8
 
     /// PDA bump for `[b"policy", owning_multisig_vault]` seeds.
     pub bump: u8,                         //  1

@@ -63,8 +63,9 @@ describe("risk_policy", () => {
     expect(account.owningMultisigVault.toBase58()).to.equal(vault.publicKey.toBase58());
     expect(Array.from(account.ciphertextRef)).to.deep.equal(ciphertextV1);
     expect(Array.from(account.arciumHandle)).to.deep.equal(arciumHandle);
-    expect(account.lastCheckAt.toNumber()).to.equal(0);      // G1 init value
-    expect(account.lastRebalancedAt.toNumber()).to.equal(0); // B3 init value
+    expect(account.lastCheckAt.toNumber()).to.equal(0); // G1 init value
+    // last_rebalanced_at is no longer on this account — moved to
+    // swig_delegation's LastRebalanced PDA (PRD §2.1 NOTE on B3).
     expect(account.bump).to.equal(bump);
     expect(account.updatedAt.toNumber()).to.be.greaterThan(0);
     // policy_hash is non-cryptographic xor-fold for v1 — just assert it's

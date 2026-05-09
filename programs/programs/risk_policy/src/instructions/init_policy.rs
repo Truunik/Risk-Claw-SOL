@@ -41,7 +41,6 @@ pub(crate) fn handle(
     p.arcium_handle = arcium_handle;
     p.updated_at = Clock::get()?.unix_timestamp;
     p.last_check_at = 0;
-    p.last_rebalanced_at = 0;
     p.bump = ctx.bumps.policy;
     p.recompute_hash();
 
