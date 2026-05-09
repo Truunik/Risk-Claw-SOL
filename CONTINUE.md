@@ -3,7 +3,7 @@
 Coordination doc for the two-builder team. Update at the end of each working
 session — this file is the single source of truth for "where are we right now."
 
-> **Last updated:** 2026-05-09 — Builder B (4 atomic feat commits: P-5..P-7, P-9..P-10b, Pkg-15..22, S-24; 19 tests pass; Stream P 6/8, Pkg 6/8, S 1/3)
+> **Last updated:** 2026-05-09 — Builder B (**PR #4 open** — programs deployed to devnet; config/devnet.ts populated with real program IDs; ready for Builder A's swap)
 
 ## Where we are
 
@@ -53,7 +53,11 @@ Schema fix in P-9 commit: `last_rebalanced_at` moved off RiskPolicy → `LastReb
 
 ## What's blocked / pending coordination
 
-- **Devnet deploy** — `bun run deploy-devnet` from `scripts/` is ready (idempotent, --dry-run). Needs ≥4 SOL airdrop on `~/.config/solana/id.json`; once run, populates `RISK_POLICY_PROGRAM_ID` + `SWIG_DELEGATION_PROGRAM_ID` in `config/devnet.ts`. **Either builder can run this.**
+- ~~**Devnet deploy**~~ ✅ DONE 2026-05-09. Both programs verified live on devnet:
+  - `risk_policy = FNThNjwxtdVSttM1Q9R81pKbiSF7jCzt8vE22A4PHrzN`
+  - `swig_delegation = 9ECtiz1EnfKnVDYFKn4GofXGeoCZHupqN2GPkcgL9zBo`
+  - Authority: `2JAmdww5RrzMhFsYcypagtNuHE466vbQ1wBKstuDs24W` (dev wallet, 2.76 SOL remaining)
+  - Wired in **PR #4** awaiting merge.
 - **Multisig setup** — Builder A's `bun run create-multisig` still pending (~5 min, requires devnet SOL).
 - **Real Arcium encryption** — Builder B's `encryptThreshold` ships placeholder packing for v1 (RISKCLAW_V1_STUB tag at bytes [48..64] — auditable). Real RescueCipher wires up post-C-14 when real `MXE_CLUSTER_PUBKEY` is set.
 - **C-14 Arcium runtime** — deferred. localnet startup wall blocks the E2E test path; v1 ships with FR-5b stub returning deterministic mock from drawdownBps. PRD §7 R1 fallback documented.
@@ -84,20 +88,14 @@ P-5..P-7.
 
 ## Builder B — next concrete action
 
-**Goal:** Get programs onto real devnet so Builder A's swap unblocks.
+**Goal:** Paired devnet test with Builder A (gated on PR #4 merge).
 
-```bash
-solana airdrop 5 --url devnet                 # may need to retry if rate-limited
-cd scripts
-bun run deploy-devnet                         # idempotent; auto-patches config/devnet.ts
-```
+1. Builder A reviews + merges PR #4.
+2. Builder A pulls main + swaps `app/lib/onchain.ts` → import `createRealClient` from `@riskclaw/onchain`.
+3. Builder A runs `bun run create-multisig` if not done, pastes PDA into `config/devnet.ts::DEV_MULTISIG`.
+4. Paired session: Builder A submits a policy via /app/policy → real `setEncryptedPolicy` tx. Builder B verifies on Solana Explorer + RebalanceExecutedEvent fires after a synthetic breach.
 
-**DoD:**
-- `RISK_POLICY_PROGRAM_ID` + `SWIG_DELEGATION_PROGRAM_ID` populated in `config/devnet.ts`.
-- Builder A imports `RealClient` from `@riskclaw/onchain` and replaces `appStubClient`.
-- Real `setEncryptedPolicy` + `executePrivateRebalance` work end-to-end on devnet.
-
-**After deploy:** paired demo recording (Builder A drives the screen, Builder B verifies the program-side events). Stretch: C-14 Arcium wiring if localnet startup can be cracked.
+**Stretch (if time):** C-14 Arcium runtime wiring. Localnet startup wall remains; alternative is `anchor test` against Rust-only T-30b (Analyst-only Signer rejection) without real MPC.
 
 ## Where to read
 
