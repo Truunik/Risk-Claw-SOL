@@ -3,46 +3,32 @@
 Coordination doc for the two-builder team. Update at the end of each working
 session — this file is the single source of truth for "where are we right now."
 
-> **Last updated:** 2026-05-08 — Builder A (PR #2 merged; Squads scaffold + policy editor + Helius observer + audit viewer + README status refresh on PR #3)
+> **Last updated:** 2026-05-09 — Builder B (4 atomic feat commits: P-5..P-7, P-9..P-10b, Pkg-15..22, S-24; 19 tests pass; Stream P 6/8, Pkg 6/8, S 1/3)
 
 ## Where we are
 
-- **Calendar date:** 2026-05-08
-- **Day per plan:** D6 of 10 (see [`BUILD_PLAN.md`](./BUILD_PLAN.md) day-by-day)
-- **Deadline:** **2026-05-11** — **3 days remaining**
-- **Slip:** Builder A foundation + first vertical slice in. Plan is compressed:
-  D9 = final cut + submit on 2026-05-11. D10/D11 obsolete.
+- **Calendar date:** 2026-05-09
+- **Day per plan:** D7 of 10
+- **Deadline:** **2026-05-11** — **2 days remaining**
+- **State:** All Builder B program/package implementation is shipped except
+  P-11 (Swig CPI, Q2 spike), C-14 (Arcium runtime, localnet wall), and Pkg-20
+  (Metaplex Core). Builder A is unblocked for `appStubClient` → `RealClient` swap.
 
 ## What's shipped
 
-**On `main` (post-PR #2):**
-- `c8406d3` — **PR #1 merged** (Builder B planning surface, Anchor scaffold,
-  `@riskclaw/onchain` skeleton, Arcium `threshold_compare` circuit @ 464M ACU,
-  Q1 KILL-SWITCH RESOLVED).
-- `ae68fee` — **PR #2 merged** (Builder A foundation): Phantom wallet on
-  devnet (Next.js 16 + Tailwind v4); G1 mitigation confirmed (Analyst Signer
-  + 5s rate limit) so Builder B is unblocked on `queue_threshold_check`;
-  BUILD_PLAN drift A1/A2/A3 fixed; deadline corrected to 2026-05-11;
-  `agents/src/run.ts` REDUCE→EXIT.
+**On `main`:**
+- `c8406d3` PR #1 — Builder B planning surface (PRD, STATUS, CLAUDE.md).
+- `ae68fee` PR #2 — Builder A foundation (Phantom + G1 ack + deadline + run.ts EXIT).
+- `75f695e` PR #3 — Builder A's `app/` (policy + audit), Helius observer, Squads scaffold, `config/devnet.ts`.
 
-**On `builder-a/squads-policy-helius` (PR #3 pending):**
-- **`config/devnet.ts`** — shared addresses (RPC, Orca whirlpool, Squads V4
-  program, dev multisig PDA, future program IDs). Plain strings, zero deps,
-  importable from any workspace via `@config/devnet`.
-- **`scripts/`** — `@sqds/multisig` workspace. `create-multisig.ts` spins up
-  a 1-of-1 Squads dev multisig and prints the PDA to paste into
-  `config/devnet.ts`. Idempotent against a stable creator key.
-- **Policy editor at `/app/policy`** — drawdown / max notional / max slippage
-  / expiry inputs, "Propose policy update" button. Uses `appStubClient`
-  (`app/lib/onchain.ts`) and `encryptThresholdStub` (`app/lib/encrypt.ts`)
-  until Builder B ships `MXE_CLUSTER_PUBKEY` + `buildSetEncryptedPolicyIx`.
-  Submit → 64-byte ciphertext (placeholder packing) → mock TxSig back into
-  the UI.
-- **Helius WS observer** — `agents/src/observer.ts` opens
-  `wss://devnet.helius-rpc.com` with `accountSubscribe` for each `POSITION_IDS`
-  entry, emits synthetic `PositionMetrics` on a 5s tick (drift curve crosses
-  4000bps over ~60 ticks for deterministic demo firings). Real Orca whirlpool
-  layout parsing flagged as v2.
+**On `builder-b/foundation` (PR pending):**
+- `78c6118` **P-5/P-6/P-7** RiskPolicy schema (185 bytes) + init/update with Squads `Signer + has_one`. T-28 ✓ 3/3.
+- `56ac103` **P-9/P-10/P-10b** swig_delegation::execute_rebalance with B3 idempotency + slippage gate + NotImplemented for Reduce/Hedge. T-29 + T-29b ✓ 5/5.
+- `5d16261` **Pkg-15..22** RealClient + 7 typed errors + encryptThreshold (placeholder packing, RISKCLAW_V1_STUB tag) + ids/PDAs + FR-5b throttle cache + FR-8b idempotency catch. T-31b + T-32 ✓ 11/11 (251ms).
+- `6d3b562` **S-24** deploy-devnet.ts (idempotent, --dry-run, auto-patches config/devnet.ts).
+- `6367516` STATUS refresh.
+
+Schema fix in P-9 commit: `last_rebalanced_at` moved off RiskPolicy → `LastRebalanced` PDA owned by swig_delegation (Solana ownership rules — risk_policy can't be mutated cross-program). 193 → 185 bytes; PRD §2.1 + §9 updated.
 - **Audit trail viewer at `/app/audit`** — three agent-zone identity cards
   (READ/COMPUTE/EXECUTE with pubkey + Core mint) and a chronological event
   table (`agent-registered`, `policy-set`, `threshold-check`, `rebalance-executed`).
@@ -61,26 +47,16 @@ session — this file is the single source of truth for "where are we right now.
 - `scripts/` typecheck clean
 - `programs/risk_policy` + `swig_delegation`: empty Anchor stubs (Builder B
   next: P-5..P-7)
-- `packages/onchain`: still type re-exports only (Pkg-15..22 pending)
-- `encrypted/threshold_compare`: Arcis IR compiled
+- `packages/onchain`: **RealClient shipped** with FR-5b cache + FR-8b idempotency catch + 7 typed errors + encryptThreshold (placeholder packing). 11/11 bun tests pass.
+- `programs/`: **risk_policy + swig_delegation real implementations shipped** — 8/8 anchor tests pass.
+- `encrypted/threshold_compare`: Arcis IR compiled (compare circuit, 464M ACU).
 
 ## What's blocked / pending coordination
 
-- **Run `scripts/create-multisig.ts`** — needs `~/.config/solana/id.json`
-  funded with ≥0.1 devnet SOL. Output PDA pastes into
-  `config/devnet.ts::DEV_MULTISIG`. Until then, the policy editor renders
-  the form but the submit button is disabled (`multisig: not configured`).
-  Builder A action; ~5 min once a devnet wallet is in place.
-- **Real Arcium encryption** — `app/lib/encrypt.ts::encryptThresholdStub`
-  packs JSON into a 64-byte buffer (NOT secret). Replace with the real
-  RescueCipher x25519 envelope when Builder B exports `MXE_CLUSTER_PUBKEY`
-  from `@riskclaw/onchain`. PRD §9 invariant: no plaintext logging on this
-  swap.
-- **Builder B program IDs** — `RISK_POLICY_PROGRAM_ID` /
-  `SWIG_DELEGATION_PROGRAM_ID` are `null` in `config/devnet.ts`. Set them
-  during Builder B's first devnet deploy.
-- **Tick-rate, rate-limit + write-idempotency — resolved in PRD §2.4 FR-5b/FR-8b.**
-  Observer's 5s tick + `run.ts` analyst loop are safe under FR-5b.
+- **Devnet deploy** — `bun run deploy-devnet` from `scripts/` is ready (idempotent, --dry-run). Needs ≥4 SOL airdrop on `~/.config/solana/id.json`; once run, populates `RISK_POLICY_PROGRAM_ID` + `SWIG_DELEGATION_PROGRAM_ID` in `config/devnet.ts`. **Either builder can run this.**
+- **Multisig setup** — Builder A's `bun run create-multisig` still pending (~5 min, requires devnet SOL).
+- **Real Arcium encryption** — Builder B's `encryptThreshold` ships placeholder packing for v1 (RISKCLAW_V1_STUB tag at bytes [48..64] — auditable). Real RescueCipher wires up post-C-14 when real `MXE_CLUSTER_PUBKEY` is set.
+- **C-14 Arcium runtime** — deferred. localnet startup wall blocks the E2E test path; v1 ships with FR-5b stub returning deterministic mock from drawdownBps. PRD §7 R1 fallback documented.
 
 ## Builder A — next concrete action
 
@@ -108,25 +84,20 @@ P-5..P-7.
 
 ## Builder B — next concrete action
 
-**Goal:** P-5..P-7 — `RiskPolicy` account schema + `init_policy` +
-`update_policy` with Squads `Signer + has_one` constraint (PRD §2.1).
+**Goal:** Get programs onto real devnet so Builder A's swap unblocks.
 
 ```bash
-cd programs
-anchor build
-anchor test   # T-28 risk_policy.ts
+solana airdrop 5 --url devnet                 # may need to retry if rate-limited
+cd scripts
+bun run deploy-devnet                         # idempotent; auto-patches config/devnet.ts
 ```
 
 **DoD:**
-- `anchor build` clean.
-- T-28 happy-path: vault signs `init_policy` → policy PDA exists with correct fields.
-- T-28 reject-path: non-vault signer attempts `update_policy` → fails with `ConstraintHasOne` or `ConstraintSigner`.
-- No plaintext score / threshold logged anywhere (PRD §9 invariant).
+- `RISK_POLICY_PROGRAM_ID` + `SWIG_DELEGATION_PROGRAM_ID` populated in `config/devnet.ts`.
+- Builder A imports `RealClient` from `@riskclaw/onchain` and replaces `appStubClient`.
+- Real `setEncryptedPolicy` + `executePrivateRebalance` work end-to-end on devnet.
 
-**After P-5..P-7:** P-9/P-10/P-10b (swig_delegation execute_rebalance +
-slippage gate + B3 idempotency), then C-14 (Arcium wiring — Hello World
-host code already shows the exact `queue_computation` + `#[arcium_callback]`
-pattern).
+**After deploy:** paired demo recording (Builder A drives the screen, Builder B verifies the program-side events). Stretch: C-14 Arcium wiring if localnet startup can be cracked.
 
 ## Where to read
 
