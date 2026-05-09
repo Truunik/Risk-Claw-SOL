@@ -3,9 +3,10 @@
 Coordination doc for the two-builder team. Update at the end of each working
 session — this file is the single source of truth for "where are we right now."
 
-> **Last updated:** 2026-05-09 (end of D7) — Builder A (merged **PR #4** at
-> `68ca34a`; `encryptThreshold` swap shipped on `app/policy`; Helius API key
-> wired in `agents/.env` + verified — observer ws connects clean)
+> **Last updated:** 2026-05-09 (D7+) — Builder B (**PR #5 open** — bundled
+> `riskPolicyIdl` + `swigDelegationIdl` into `@riskclaw/onchain` so Builder
+> A's RealClient swap unblocks without Anchor CLI; plus S-23 agent NFTs +
+> T-34 audit + step-by-step swap guide)
 
 ## Where we are
 
