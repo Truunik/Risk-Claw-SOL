@@ -27,3 +27,21 @@ export const DEV_MULTISIG: string | null = null;
 // Until then, both are `null` and the app/agents stay on the local stub.
 export const RISK_POLICY_PROGRAM_ID: string | null = "FNThNjwxtdVSttM1Q9R81pKbiSF7jCzt8vE22A4PHrzN";
 export const SWIG_DELEGATION_PROGRAM_ID: string | null = "9ECtiz1EnfKnVDYFKn4GofXGeoCZHupqN2GPkcgL9zBo";
+
+export const DEVNET_AGENTS: { [zone: string]: { mint: string; pubkey: string; name: string } } = {
+  "read": {
+    "mint": "AERmaK7CD7HGp8zFHP3PEGtfEC6QWZUHYh6Xg8YHwLQU",
+    "pubkey": "EsRmSkrcjfoqEzgh4Wzbo56KqymTZ2NMMy1kxJtHHFRR",
+    "name": "Observer"
+  },
+  "compute": {
+    "mint": "Hq5VqNHUNtENWTNTk3ZqJz6jdJExrzw5cUCayAhVUjdo",
+    "pubkey": "6GJuVdSUUenAC4B2px9VaCC63EjMhTE4K26zLHZQPo22",
+    "name": "Analyst"
+  },
+  "execute": {
+    "mint": "ERxDBEUU6heys5PrA93tGZwjWucvhY3jJdyQpsFE9YzH",
+    "pubkey": "Ajeq8tVnK9CDJGagRnV2LWghduSYaeFpevpu7VoMBHpW",
+    "name": "Guardian"
+  }
+};
