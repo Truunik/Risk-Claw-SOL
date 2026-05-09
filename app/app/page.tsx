@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useWallet } from "@solana/wallet-adapter-react";
 
 const WalletMultiButton = dynamic(
@@ -38,6 +39,23 @@ export default function Home() {
         <p className="text-xs text-zinc-500">
           No wallet connected. Devnet network expected.
         </p>
+      )}
+
+      {connected && (
+        <nav className="flex flex-wrap items-center justify-center gap-3">
+          <Link
+            href="/policy"
+            className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-emerald-50 transition-colors hover:bg-emerald-500"
+          >
+            Open policy editor →
+          </Link>
+          <Link
+            href="/audit"
+            className="rounded-md border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-200 transition-colors hover:border-zinc-500 hover:text-zinc-50"
+          >
+            View audit trail →
+          </Link>
+        </nav>
       )}
     </main>
   );
