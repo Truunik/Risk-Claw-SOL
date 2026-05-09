@@ -7,10 +7,10 @@ treasuries and onchain funds delegate bounded rebalancing authority to a
 least-privilege three-zone agent stack (read / compute / execute). The user's
 risk policy is enforced on-chain without ever existing on-chain — Arcium MPC
 compares encrypted thresholds against live position metrics, and the agents
-themselves never see plaintext. Execution routes through Vanish to prevent
-behavioral inference across firings.
+themselves never see plaintext.
 
-> Built for the Colosseum Frontier hackathon. Started 2026-04-27, submission deadline approximately 2026-05-13.
+> Built for the Colosseum Frontier hackathon. Started 2026-04-27, submission
+> deadline **2026-05-11**.
 
 ## What it does
 
@@ -28,20 +28,21 @@ agents in separate trust zones enforce it:
   Swig delegation. Receives only a "rebalance / no-op" decision from the
   compute zone — never the threshold itself.
 
-When the policy is breached, the Guardian executes a rebalance through
-Vanish, preventing behavioral inference across firings. Every action is
-signed by an agent identity registered on the Metaplex 014 registry,
-producing a cryptographically auditable trail of which agent did what,
-when, and under which delegation.
+When the policy is breached, the Guardian executes a rebalance through Swig
+delegation — slippage and notional bounds enforced onchain. Every action is
+signed by an agent identity registered as a Metaplex Core (`mpl-core`) NFT
+with a `zone` Attribute, producing a cryptographically auditable trail of
+which agent did what, when, and under which delegation. Behavioral-inference
+resistance via Vanish is on the post-hackathon roadmap.
 
 ## Why this matters for institutions
 
 - **Audit-grade.** Every Guardian action is a signed Core NFT transaction
   with a verifiable delegation policy. LPs, boards, and auditors can trace
   any rebalance back to the specific bounded authority that permitted it.
-- **Policy privacy.** The threshold itself is the alpha. If it leaks, MEV
-  actors front-run firings and competing funds copy the strategy. Encrypted
-  thresholds + behavioral-inference-resistant execution close both holes.
+- **Policy privacy.** The threshold itself is the alpha. Encrypted thresholds
+  via Arcium MPC mean MEV actors can't front-run firings and competing funds
+  can't reverse-engineer the strategy from the chain.
 - **Least-privilege automation.** No single agent can both decide and act.
   No agent ever holds the policy in plaintext. Compromise of any one zone
   doesn't compromise the policy or the treasury.
@@ -51,12 +52,11 @@ when, and under which delegation.
 | Sponsor               | Role in RiskClaw-Sol                                                          |
 |-----------------------|-------------------------------------------------------------------------------|
 | Phantom               | Treasury operator wallet connection (existing wallets, hardware-backed)       |
-| Altitude (Squads)     | Multisig approval layer for institutional signers                             |
-| Swig                  | Bounded delegation policy — Guardian executes only within signed limits       |
-| Helius                | LaserStream gRPC for real-time position monitoring (read zone)                |
-| Metaplex              | Three agents registered on the 014 registry as auditable Core NFT identities  |
+| Altitude (Squads V4)  | Multisig approval layer — only the vault PDA can mutate `risk_policy`         |
+| Swig                  | Bounded delegation — Guardian's signing key capped by signed policy onchain   |
+| Helius                | Real-time position monitoring via WS account subscriptions (read zone)        |
+| Metaplex Core         | Three agents registered as `mpl-core` NFTs with `zone` Attributes             |
 | Arcium                | Encrypted policy storage + MPC comparison (compute zone never sees plaintext) |
-| Vanish                | Private execution path — prevents behavioral inference across firings         |
 
 ## Architecture
 
@@ -81,11 +81,12 @@ when, and under which delegation.
 │              │            output: { breached: bool, score: u16 }     │
 │              ▼                                                       │
 │  EXECUTE zone (Guardian)  only signing key in the system             │
-│              │            bounded by Swig delegation                 │
-│              ▼            routed through Vanish (private exec)       │
+│              │            bounded by Swig delegation onchain         │
+│              ▼            slippage + notional gates enforced         │
 │                                                                      │
-│  Each agent registered on Metaplex 014 as a Core NFT — every         │
-│  on-chain action is signed by a verifiable agent identity.           │
+│  Each agent registered as a Metaplex Core NFT (`mpl-core`) with a    │
+│  `zone` Attribute — every onchain action is signed by a verifiable   │
+│  agent identity tied to its trust zone.                              │
 └──────────────────────────────────────────────────────────────────────┘
                                   │
                                   ▼
@@ -111,7 +112,7 @@ when, and under which delegation.
 Two-builder team, split for parallel execution.
 
 - **Builder A** — App + Agents (Next.js console, agent orchestration, demo)
-- **Builder B** — Programs + Privacy (Anchor programs, Swig, Arcium, Vanish, Metaplex 014)
+- **Builder B** — Programs + Privacy (Anchor programs, Swig, Arcium, Metaplex Core)
 
 Full role breakdown, integration contract, day-by-day plan, and risk callouts
 live in [`BUILD_PLAN.md`](./BUILD_PLAN.md). Read that before starting work.
@@ -119,15 +120,17 @@ live in [`BUILD_PLAN.md`](./BUILD_PLAN.md). Read that before starting work.
 ## Status
 
 - [x] Repo + LICENSE + plan docs
-- [ ] Repo scaffolded (app / agents / programs / encrypted / scripts)
-- [ ] Phantom wallet connect + Squads multisig integration in operator console
-- [ ] Helius LaserStream subscribing to one DEX (Orca or Raydium) — read zone
-- [ ] Arcium Arcis circuit: encrypted threshold compare — compute zone
+- [x] Repo scaffolded (app / agents / programs / encrypted / scripts)
+- [x] Phantom wallet connect in operator console
+- [x] Policy editor at `/app/policy` (encrypted-threshold draft → stub propose flow)
+- [x] Audit trail viewer at `/app/audit` (synthetic events; live wiring pending Builder B program events)
+- [x] Helius WS subscribing to one Orca whirlpool — read zone (synthetic metrics; real layout parsing v2)
+- [x] Arcium Arcis circuit: `compare(threshold, score)` compiled — compute zone
+- [x] Squads V4 dev multisig setup script (`scripts/create-multisig.ts`)
 - [ ] `risk_policy` Anchor program: ciphertext pointer + Arcium handle
 - [ ] `swig_delegation` bounded execution authority — execute zone
-- [ ] Metaplex 014: three agents registered as Core NFTs
-- [ ] Vanish: private rebalance execution path
-- [ ] End-to-end devnet demo: policy → breach → private execution
-- [ ] Audit trail viewer (read-only UI for action history)
+- [ ] Metaplex Core: three agents registered as `mpl-core` NFTs
+- [ ] `@riskclaw/onchain` real client (Pkg-15..22) — replaces local stub
+- [ ] End-to-end devnet demo: policy → breach → bounded execution
 - [ ] Demo video
-- [ ] Submission on arena.colosseum.org
+- [ ] Submission on colosseum.com/frontier

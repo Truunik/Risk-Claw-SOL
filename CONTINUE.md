@@ -3,7 +3,7 @@
 Coordination doc for the two-builder team. Update at the end of each working
 session — this file is the single source of truth for "where are we right now."
 
-> **Last updated:** 2026-05-08 — Builder A (PR #2 merged; Squads scaffold + policy editor + Helius observer shipped on builder-a/squads-policy-helius)
+> **Last updated:** 2026-05-08 — Builder A (PR #2 merged; Squads scaffold + policy editor + Helius observer + audit viewer + README status refresh on PR #3)
 
 ## Where we are
 
@@ -43,13 +43,21 @@ session — this file is the single source of truth for "where are we right now.
   entry, emits synthetic `PositionMetrics` on a 5s tick (drift curve crosses
   4000bps over ~60 ticks for deterministic demo firings). Real Orca whirlpool
   layout parsing flagged as v2.
-- **`agents/.env.example`** — POSITION_IDS now defaults to the devnet Orca
-  SOL/USDC whirlpool.
+- **Audit trail viewer at `/app/audit`** — three agent-zone identity cards
+  (READ/COMPUTE/EXECUTE with pubkey + Core mint) and a chronological event
+  table (`agent-registered`, `policy-set`, `threshold-check`, `rebalance-executed`).
+  Synthetic events from `app/lib/audit.ts::generateDemoEvents()` for v1; swap
+  to a Solana program event subscription when Builder B emits
+  `ThresholdCheckEvent` + `RebalanceExecutedEvent`.
+- **README + .env.example refresh** — Vanish removed throughout (post-hackathon
+  roadmap), Metaplex 014 → Metaplex Core; deadline 2026-05-11; status
+  checklist reflects shipped slices; POSITION_IDS defaults to the devnet
+  Orca whirlpool.
 
 **Verified state:**
 - `agents/` typecheck clean (`bun run typecheck` passes)
 - `app/` build clean (`bun run build` — static export of `/`, `/_not-found`,
-  `/policy`)
+  `/audit`, `/policy`)
 - `scripts/` typecheck clean
 - `programs/risk_policy` + `swig_delegation`: empty Anchor stubs (Builder B
   next: P-5..P-7)
@@ -76,23 +84,27 @@ session — this file is the single source of truth for "where are we right now.
 
 ## Builder A — next concrete action
 
-**Goal:** Audit trail viewer + paired devnet test.
+**Goal:** Run the multisig setup + paired devnet test once Builder B ships
+P-5..P-7.
 
 1. Run `cd scripts && bun run create-multisig` against a funded devnet
    keypair; paste the PDA into `config/devnet.ts::DEV_MULTISIG`.
-2. Audit trail viewer at `/app/audit` — read `ThresholdCheckEvent` +
-   `RebalanceExecutedEvent` (Builder B emits per PRD §9) and render every
-   Guardian action with delegation provenance. Until Builder B's events
-   ship, render synthetic events from the observer drift curve.
-3. Paired devnet test with Builder B once P-5..P-7 lands: full encrypt →
-   propose → multisig-execute → verify policy account onchain.
+2. Wire `/app/audit` to a real Solana program event subscription once
+   Builder B emits `ThresholdCheckEvent` + `RebalanceExecutedEvent` —
+   replace `generateDemoEvents()` with `program.addEventListener(...)`.
+3. Swap `appStubClient` → `@riskclaw/onchain` and replace
+   `encryptThresholdStub` with the real RescueCipher x25519 envelope
+   (`MXE_CLUSTER_PUBKEY`) once Pkg-15..22 ships.
+4. Paired devnet test with Builder B: full encrypt → propose →
+   multisig-execute → verify policy account onchain.
 
 **DoD:**
 - `DEV_MULTISIG` populated; policy editor submit produces a real Squads
   proposal (1-of-1 auto-executes locally).
-- `/app/audit` lists at least one `ThresholdCheckEvent` after a demo run.
+- `/app/audit` lists at least one real `ThresholdCheckEvent` after a paired
+  demo run.
 
-**Estimated time:** ~4–6 hours.
+**Estimated time:** ~3–4 hours of net Builder A work, gated on Builder B.
 
 ## Builder B — next concrete action
 
@@ -130,12 +142,6 @@ pattern).
 
 ## How to update this file
 
-After each working session:
-
-1. Update the **Last updated** line
-2. Move completed items from "next concrete action" to "What's shipped"
-3. Update "Where we are" if the day/slip changed
-4. Add anything blocking the other builder to "What's blocked"
-
-Keep this file under 150 lines. If it grows past that, the day-by-day
-belongs in [`BUILD_PLAN.md`](./BUILD_PLAN.md), not here.
+End of each session: bump **Last updated**, move shipped items, refresh
+"Where we are", flag new blockers. Keep under 150 lines — day-by-day
+belongs in [`BUILD_PLAN.md`](./BUILD_PLAN.md).
