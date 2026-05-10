@@ -119,18 +119,55 @@ live in [`BUILD_PLAN.md`](./BUILD_PLAN.md). Read that before starting work.
 
 ## Status
 
+Submission state as of D8 (2026-05-10) — deadline D9 (2026-05-11).
+
 - [x] Repo + LICENSE + plan docs
 - [x] Repo scaffolded (app / agents / programs / encrypted / scripts)
 - [x] Phantom wallet connect in operator console
-- [x] Policy editor at `/app/policy` (encrypted-threshold draft → stub propose flow)
-- [x] Audit trail viewer at `/app/audit` (synthetic events; live wiring pending Builder B program events)
-- [x] Helius WS subscribing to one Orca whirlpool — read zone (synthetic metrics; real layout parsing v2)
-- [x] Arcium Arcis circuit: `compare(threshold, score)` compiled — compute zone
-- [x] Squads V4 dev multisig setup script (`scripts/create-multisig.ts`)
-- [ ] `risk_policy` Anchor program: ciphertext pointer + Arcium handle
-- [ ] `swig_delegation` bounded execution authority — execute zone
-- [ ] Metaplex Core: three agents registered as `mpl-core` NFTs
-- [ ] `@riskclaw/onchain` real client (Pkg-15..22) — replaces local stub
-- [ ] End-to-end devnet demo: policy → breach → bounded execution
-- [ ] Demo video
-- [ ] Submission on colosseum.com/frontier
+- [x] Policy editor at `/app/policy` (encrypted-threshold draft + propose)
+- [x] Audit trail viewer at `/app/audit` (synthetic events; live wire pending Builder A swap)
+- [x] Helius WS subscribing to one Orca whirlpool — read zone
+- [x] Arcium Arcis circuit: `compare(threshold, score)` compiled @ 464M ACU
+- [x] Squads V4 dev multisig (1-of-1 vault PDA on devnet)
+- [x] **`risk_policy` Anchor program live on devnet** (`FNThNj…PHrzN`) — 3/3 tests
+- [x] **`swig_delegation` Anchor program live on devnet** (`9ECtiz…L9zBo`) — 5/5 tests
+- [x] **Metaplex Core agents minted on devnet** — Observer / Analyst / Guardian
+- [x] **`@riskclaw/onchain` real client** — bundled IDLs, real RealClient, FR-5b/FR-8b throttles, 14/14 tests
+- [x] **T-30b zone-separation invariant** — 6/6 tests (TS-side; Anchor variant deferred to C-14)
+- [x] **T-34 privacy invariant audit** — PRD §9 invariants 1-4 PASS for v1
+- [x] **`scripts/e2e-smoke.ts`** — 9-step demo orchestrator (S-27b)
+- [x] **`scripts/seed-demo.ts`** — preflight + airdrop top-up + pinned DEMO_STATE (S-23b)
+- [ ] Builder A `appStubClient` → `createRealClient` swap (PR pending)
+- [ ] Paired devnet test (T-33) + audit page wired to live program events
+- [ ] Demo recording (D9)
+- [ ] Submission on colosseum.com/frontier (D9)
+- [ ] Live MPC runtime (C-14 — deferred; PRD §7 R1 fallback documented)
+- [ ] Swig CPI swap for Exit (P-11 — Q2 spike; v2)
+
+## Run the demo
+
+```bash
+# 1. Preflight + airdrop top-up + print pinned DEMO_STATE (S-23b)
+cd scripts && bun install && bun run seed-demo
+
+# 2. Walk the 9-step end-to-end against live devnet (S-27b)
+bun run e2e-smoke
+```
+
+Devnet program IDs and agent mints are committed in
+[`config/devnet.ts`](./config/devnet.ts); no setup needed beyond a funded
+`~/.config/solana/id.json`.
+
+## Demo storyboard (2 minutes)
+
+| t       | Frame                          | Narration |
+|---------|--------------------------------|-----------|
+| 0:00    | Phantom connects to `/app`     | "Operator opens RiskClaw on devnet — Phantom + Squads multisig as the institutional approval layer." |
+| 0:15    | `/app/policy` editor           | "They draft a policy: drawdown ≥ 25% triggers an Exit. The threshold encrypts client-side via `RISKCLAW_V1_STUB` packing — bytes [0..8] are the value, bytes [48..64] are the auditor signal." |
+| 0:30    | Squads → setEncryptedPolicy tx | "Multisig auto-execs (1-of-1 dev), the ciphertext lands in `risk_policy::RiskPolicy` on devnet." |
+| 0:45    | Helius observer terminal       | "Observer streams synthetic drawdown — 500bps, 1500bps, 3500bps. Read zone: no keys, no policy access." |
+| 1:00    | Analyst evaluates              | "Compute zone calls `checkThresholdBreach` — FR-5b throttle hits within 5s, real call when stale. Returns `{breached, score}` only — never the threshold." |
+| 1:15    | Guardian → executePrivateRebalance | "Execute zone fires `swig_delegation::execute_rebalance` — slippage gate + 30s idempotency window enforced onchain. Only zone with a key." |
+| 1:30    | `/app/audit` event row         | "Audit page lists the real `RebalanceExecutedEvent` — Guardian signer + size + timestamp, all signed by the Metaplex Core NFT identity." |
+| 1:45    | Re-fire within 30s             | "FR-8b idempotency: re-call returns the cached prior `TxSig`. No double-swap, no race." |
+| 2:00    | Cut to scoreboard              | "Audit-grade architecture, encrypted policy storage, MPC-comparison circuit live, agent identities on-chain. v2 wires RescueCipher + Arcium MXE — flagged with the on-chain `RISKCLAW_V1_STUB` tag so it's never confused with cryptographic privacy." |
