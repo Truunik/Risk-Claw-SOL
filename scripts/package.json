@@ -6,11 +6,16 @@
   "scripts": {
     "create-multisig": "bun run create-multisig.ts",
     "deploy-devnet": "bun run deploy-devnet.ts",
+    "register-agents": "bun run register-agents.ts",
     "smoke-realclient": "bun run smoke-realclient.ts",
+    "e2e-smoke": "bun run e2e-smoke.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@anchor-lang/core": "^1.0.2",
+    "@metaplex-foundation/mpl-core": "^1.4.0",
+    "@metaplex-foundation/umi": "^1.0.0",
+    "@metaplex-foundation/umi-bundle-defaults": "^1.0.0",
     "@solana/web3.js": "^1.95.0",
     "@sqds/multisig": "^2.1.3"
   },

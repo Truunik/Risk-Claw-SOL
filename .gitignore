@@ -24,3 +24,8 @@ bun.lockb
 # Editor
 .vscode/
 .idea/
+
+# Agent keypairs + per-machine devnet registry (regenerable from on-chain
+# state; secrets must NOT be committed)
+scripts/.keys/
+scripts/devnet-registry.json

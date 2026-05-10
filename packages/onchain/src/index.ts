@@ -45,3 +45,17 @@ export type {
   ThresholdCheckResult,
   TxSig,
 } from "../../../agents/src/types";
+
+// Bundled program IDLs — frozen snapshot of the deployed program ABIs
+// (commit `8941698` deployed risk_policy + swig_delegation to devnet at
+// FNThNj…PHrzN + 9ECtiz…L9zBo respectively; both `anchor deploy --no-idl`,
+// so on-chain IDL fetch is unavailable). Consumers pass these directly
+// into createRealClient's `riskPolicyIdl` + `swigDelegationIdl` fields
+// — no Anchor CLI required on the consumer's machine.
+//
+// When programs are redeployed, regenerate via `anchor build` in /programs
+// and copy from `programs/target/idl/*.json` into this directory.
+import riskPolicyIdlJson from "./idl/risk_policy.json";
+import swigDelegationIdlJson from "./idl/swig_delegation.json";
+export const riskPolicyIdl = riskPolicyIdlJson;
+export const swigDelegationIdl = swigDelegationIdlJson;

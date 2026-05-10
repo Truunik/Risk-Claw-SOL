@@ -1,0 +1,292 @@
+{
+  "address": "FNThNjwxtdVSttM1Q9R81pKbiSF7jCzt8vE22A4PHrzN",
+  "metadata": {
+    "name": "risk_policy",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "init_policy",
+      "docs": [
+        "Create a new RiskPolicy PDA owned by a Squads V4 vault. PRD task P-6.",
+        "AC-1 + AC-2 in PRD §8."
+      ],
+      "discriminator": [
+        45,
+        234,
+        110,
+        100,
+        209,
+        146,
+        191,
+        86
+      ],
+      "accounts": [
+        {
+          "name": "policy",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  108,
+                  105,
+                  99,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owning_multisig_vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "owning_multisig_vault",
+          "docs": [
+            "of this init — proves the multisig has approved policy creation.",
+            "In T-28 unit tests we use a regular keypair (PRD §8 AC-1)."
+          ],
+          "signer": true
+        },
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "ciphertext_ref",
+          "type": {
+            "array": [
+              "u8",
+              64
+            ]
+          }
+        },
+        {
+          "name": "arcium_handle",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "update_policy",
+      "docs": [
+        "Update an existing RiskPolicy. Vault `Signer + has_one` constraints",
+        "reject any non-vault signer. PRD task P-7."
+      ],
+      "discriminator": [
+        212,
+        245,
+        246,
+        7,
+        163,
+        151,
+        18,
+        57
+      ],
+      "accounts": [
+        {
+          "name": "policy",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  108,
+                  105,
+                  99,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owning_multisig_vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "owning_multisig_vault",
+          "docs": [
+            "verification per PRD §3 TD-5."
+          ],
+          "signer": true,
+          "relations": [
+            "policy"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "ciphertext_ref",
+          "type": {
+            "array": [
+              "u8",
+              64
+            ]
+          }
+        },
+        {
+          "name": "arcium_handle",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "RiskPolicy",
+      "discriminator": [
+        36,
+        66,
+        86,
+        72,
+        195,
+        245,
+        148,
+        55
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "UnauthorizedAnalyst",
+      "msg": "queue_threshold_check caller is not the registered Analyst agent"
+    },
+    {
+      "code": 6001,
+      "name": "CheckTooSoon",
+      "msg": "queue_threshold_check called within rate-limit window"
+    },
+    {
+      "code": 6002,
+      "name": "InvalidCiphertextSize",
+      "msg": "ciphertext_ref must be exactly 64 bytes"
+    }
+  ],
+  "types": [
+    {
+      "name": "RiskPolicy",
+      "docs": [
+        "Encrypted risk policy stored on-chain. Mutated only by the owning Squads V4",
+        "vault PDA (verified via `Signer + has_one` Anchor constraints, see PRD §9).",
+        "",
+        "Total size: 8 (discriminator) + 177 = 185 bytes (PRD §2.1).",
+        "",
+        "NOTE on B3: `last_rebalanced_at` was originally specified here but cannot",
+        "live on this account — `swig_delegation::execute_rebalance` is owned by a",
+        "different program and Solana account ownership forbids cross-program",
+        "writes. The field moved to a `LastRebalanced` PDA owned by `swig_delegation`",
+        "(seeds = [b\"last_rebalanced\", policy.key()]). See PRD §2.2 + §9."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owning_multisig_vault",
+            "docs": [
+              "Squads V4 vault PDA — the only authority that can mutate this policy."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "ciphertext_ref",
+            "docs": [
+              "Inline ciphertext for the encrypted threshold (RescueCipher x25519",
+              "envelope). 64 bytes is generous for a single u64 threshold; PRD §3 TD-1."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                64
+              ]
+            }
+          },
+          {
+            "name": "arcium_handle",
+            "docs": [
+              "Arcium computation-definition handle. Set when C-14 wires",
+              "`queue_threshold_check` into this program; for P-5..P-7 it's a",
+              "caller-supplied opaque blob."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "policy_hash",
+            "docs": [
+              "sha256(ciphertext_ref || arcium_handle). Cheap integrity check that",
+              "the policy hasn't been tampered with between init and update."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "updated_at",
+            "docs": [
+              "Solana clock at last policy mutation. Audit trail anchor."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "last_check_at",
+            "docs": [
+              "Read-side rate limit for `queue_threshold_check` (G1, PRD §9).",
+              "Enforced when C-14 lands; P-5..P-7 just initializes to 0."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "PDA bump for `[b\"policy\", owning_multisig_vault]` seeds."
+            ],
+            "type": "u8"
+          }
+        ]
+      }
+    }
+  ],
+  "constants": [
+    {
+      "name": "SEED",
+      "type": "string",
+      "value": "\"anchor\""
+    }
+  ]
+}
