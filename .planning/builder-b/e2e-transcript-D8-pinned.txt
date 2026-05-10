@@ -1,0 +1,46 @@
+$ bun run e2e-smoke.ts
+[e2e-smoke] 
+[e2e-smoke] ══════════════════════════════════════════
+[e2e-smoke]   RiskClaw-Sol — E2E demo smoke
+[e2e-smoke] ══════════════════════════════════════════
+[e2e-smoke] 
+[e2e-smoke]   programs:    risk_policy=FNThNjwx…  swig_delegation=9ECtiz1E…
+[e2e-smoke]   multisig:    BpwBRaBoHj2it821Knv2WpKB67gC6rgfg7KRdBNHHqme
+[e2e-smoke]   agents:      Observer=AERmaK7C…  Analyst=Hq5VqNHU…  Guardian=ERxDBEUU…
+[e2e-smoke]   wallet:      Fzfjam6sgSjRSPNAZPZCpfwmRyAKvwSgZMvzLqcmsNnP  (4.995 SOL)
+[e2e-smoke]   ✓ step 1 preconditions: all green
+[e2e-smoke] 
+[e2e-smoke]   ciphertext: 64 bytes; tag=RISKCLAW_V1_STUB (v1 placeholder packing per PRD §7 R1)
+[e2e-smoke]   ✓ step 2 setEncryptedPolicy(threshold=9000): tx 2iNnUdZTniHkR4aF…
+[e2e-smoke]              https://explorer.solana.com/tx/2iNnUdZTniHkR4aFr4vXLRY6xR4n6628w9W3hkYBSTjK61TLcFF51ac4zMTdS1GPZLcdvDvxdiRhk1jhpLYRgpQ6?cluster=devnet
+[e2e-smoke]   RiskPolicy PDA: DpKAer9JUmzMfyJ3G3k3M7xGHp3WnGrg5Ppv1Uy5a1jB
+[e2e-smoke] 
+[e2e-smoke]   ✓ step 3 subscribe to RebalanceExecutedEvent: listener id=0
+[e2e-smoke] 
+[e2e-smoke]   ✓ step 4 checkThresholdBreach @ low drawdown (500bps): breached=false (drawdown 500bps < 2500bps threshold)
+[e2e-smoke]   (waiting 5.2s for FR-5b cache window to expire)
+[e2e-smoke] 
+[e2e-smoke]   ✓ step 5 checkThresholdBreach @ high drawdown (3500bps): breached=true score=7500
+[e2e-smoke] 
+[e2e-smoke]   ✓ step 6 FR-5b cache hit: returned cached prior {breached, score} despite new metrics
+[e2e-smoke] 
+[e2e-smoke]   📡 RebalanceExecutedEvent received: policy=DpKAer9J… size=10000bps
+[e2e-smoke]   tx mDg1n47USHtMoen3…
+[e2e-smoke]      https://explorer.solana.com/tx/mDg1n47USHtMoen3RpYG7dTFpRzjmpR8BiM832i4an6bJ6su1uTxEqMrJ6rNq5hWJ9p2mJZvufoC8fYy6rbY6Bv?cluster=devnet
+[e2e-smoke]   ✓ step 7 executePrivateRebalance(EXIT, sizeBps=10000): event captured: size=10000bps ts=1778446020
+[e2e-smoke] 
+[e2e-smoke]   ✓ step 8 FR-8b idempotency catch: returned cached prior TxSig (no second swap)
+[e2e-smoke] 
+[e2e-smoke]   ✓ step 9 delegateToGuardian (deferred Pkg-19): threw NotImplementedError as designed
+[e2e-smoke] 
+[e2e-smoke] ══════════════════════════════════════════
+[e2e-smoke]   ALL 9 STEPS PASSED — demo flow live
+[e2e-smoke] ══════════════════════════════════════════
+[e2e-smoke]   setEncryptedPolicy:        https://explorer.solana.com/tx/2iNnUdZTniHkR4aFr4vXLRY6xR4n6628w9W3hkYBSTjK61TLcFF51ac4zMTdS1GPZLcdvDvxdiRhk1jhpLYRgpQ6?cluster=devnet
+[e2e-smoke]   executePrivateRebalance:   https://explorer.solana.com/tx/mDg1n47USHtMoen3RpYG7dTFpRzjmpR8BiM832i4an6bJ6su1uTxEqMrJ6rNq5hWJ9p2mJZvufoC8fYy6rbY6Bv?cluster=devnet
+[e2e-smoke]   RiskPolicy PDA:            https://explorer.solana.com/address/DpKAer9JUmzMfyJ3G3k3M7xGHp3WnGrg5Ppv1Uy5a1jB?cluster=devnet
+[e2e-smoke]   Multisig:                  https://explorer.solana.com/address/BpwBRaBoHj2it821Knv2WpKB67gC6rgfg7KRdBNHHqme?cluster=devnet
+[e2e-smoke]   Observer agent NFT:        https://explorer.solana.com/address/AERmaK7CD7HGp8zFHP3PEGtfEC6QWZUHYh6Xg8YHwLQU?cluster=devnet
+[e2e-smoke]   Analyst agent NFT:         https://explorer.solana.com/address/Hq5VqNHUNtENWTNTk3ZqJz6jdJExrzw5cUCayAhVUjdo?cluster=devnet
+[e2e-smoke]   Guardian agent NFT:        https://explorer.solana.com/address/ERxDBEUU6heys5PrA93tGZwjWucvhY3jJdyQpsFE9YzH?cluster=devnet
+[e2e-smoke] ══════════════════════════════════════════

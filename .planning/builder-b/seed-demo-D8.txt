@@ -1,0 +1,20 @@
+$ bun run seed-demo.ts
+[seed-demo] 
+[seed-demo] ═══ S-23b — demo-state seed ═══
+[seed-demo] 
+[seed-demo] 1) config/devnet.ts preflight
+[seed-demo]   ✓ programs:  risk_policy=FNThNjwx…  swig_delegation=9ECtiz1E…
+[seed-demo]   ✓ multisig:  BpwBRaBoHj2it821Knv2WpKB67gC6rgfg7KRdBNHHqme
+[seed-demo]   ✓ agents:    Observer/Analyst/Guardian all registered on devnet
+[seed-demo] 
+[seed-demo] 2) wallet balance preflight
+[seed-demo]   ✓ Fzfjam6s…  4.9980 → 4.9980 SOL
+[seed-demo] 
+[seed-demo] 3) pinned demo inputs (DEMO_STATE)
+[seed-demo]   threshold:  9000 (encoded with RISKCLAW_V1_STUB tag)
+[seed-demo]   ladder:     drawdown=500bps  notional=$9000  → no breach  (low drawdown — should NOT breach)
+[seed-demo]   ladder:     drawdown=3500bps  notional=$7500  → BREACH  (high drawdown — should breach)
+[seed-demo]   rebalance:  action=EXIT  sizeBps=10000
+[seed-demo] 
+[seed-demo] ═══ S-23b done — demo state pinned ═══
+[seed-demo] Next: `bun run e2e-smoke` walks the demo against this state.
