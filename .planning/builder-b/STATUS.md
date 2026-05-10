@@ -20,7 +20,7 @@ Live state for Builder B's execution. Updated as work progresses.
 [◐] Stream P  — Programs            6/8 (P-5..P-7, P-9..P-10b done; P-11 deferred Q2)
 [◐] Stream C  — Circuit              2/3 (C-12, C-13 done; C-14 deferred — needs localnet fix)
 [◐] Stream Pkg — Package             6/8 active + 2 NotImplemented stubs (Pkg-19 Q2, Pkg-20 Metaplex)
-[◐] Stream S  — Scripts              1/3 (S-24 done; S-23 + S-23b + S-27b pending)
+[◐] Stream S  — Scripts              3/4 (S-23 + S-24 + S-27b done; S-23b pending)
 [◐] Stream T  — Tests                4/8 written (T-28 + T-29/T-29b + T-31b + T-32 — 19 pass total)
 ```
 
@@ -70,7 +70,7 @@ Live state for Builder B's execution. Updated as work progresses.
 - [ ] **S-25** Arcium circuit deploy step (deferred — C-14 dependency)
 - [x] **S-26** `config/devnet.ts` schema is set by Builder A (PR #3); deploy-devnet.ts populates the program ID slots.
 - [ ] **S-27** Clean-machine end-to-end smoke run (manual; gated on real devnet deploy)
-- [ ] **S-27b** `scripts/e2e-smoke.ts` — automated end-to-end (B4, see PRD §2.8)
+- [x] **S-27b** `scripts/e2e-smoke.ts` — automated 9-step demo orchestrator. ALL 9 STEPS PASSED against live devnet: setEncryptedPolicy (update path) → live `RebalanceExecutedEvent` subscription → low/high drawdown checks → FR-5b cache hit → executePrivateRebalance (event captured: `size=10000bps`) → FR-8b idempotency → delegateToGuardian throws NotImplementedError. Run via `bun run e2e-smoke` from `scripts/`.
 
 ### Stream T — Tests
 

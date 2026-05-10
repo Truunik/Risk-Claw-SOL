@@ -8,6 +8,7 @@
     "deploy-devnet": "bun run deploy-devnet.ts",
     "register-agents": "bun run register-agents.ts",
     "smoke-realclient": "bun run smoke-realclient.ts",
+    "e2e-smoke": "bun run e2e-smoke.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
