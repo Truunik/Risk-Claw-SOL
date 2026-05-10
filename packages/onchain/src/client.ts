@@ -27,11 +27,13 @@ import {
   SlippageRejectedError,
 } from "./errors";
 import {
+  AGENT_REGISTRY,
   RISK_POLICY_PROGRAM_ID,
   SWIG_DELEGATION_PROGRAM_ID,
   deriveLastRebalancedPda,
   deriveRiskPolicyPda,
 } from "./ids";
+import type { AgentZone } from "./ids";
 
 const { BN, web3 } = anchor;
 
@@ -249,12 +251,30 @@ class RealClient implements OnchainClient {
     }
   }
 
-  // ---------- registerAgent (deferred) ----------
+  // ---------- registerAgent (Pkg-20) ----------
 
-  async registerAgent(_agent: AgentConfig): Promise<MintAddress> {
-    throw new NotImplementedError(
-      "registerAgent — Pkg-20 (Metaplex Core mpl-core via Umi)",
-    );
+  /**
+   * V1 semantic: agents are pre-registered on devnet by
+   * `scripts/register-agents.ts` (one Metaplex Core NFT per zone). This
+   * resolves the on-chain mint for a given zone and validates that the
+   * caller's expected signer pubkey matches the registered owner — a stale
+   * config on the caller's side is louder than silently returning the wrong
+   * mint. Runtime minting / rotation is v2 (not in scope for the hackathon).
+   */
+  async registerAgent(agent: AgentConfig): Promise<MintAddress> {
+    const entry = AGENT_REGISTRY[agent.zone as AgentZone];
+    if (!entry) {
+      throw new OnchainRejectionError(
+        `no registered agent for zone="${agent.zone}" — run scripts/register-agents.ts`,
+      );
+    }
+    if (!entry.pubkey.equals(agent.publicKey)) {
+      throw new OnchainRejectionError(
+        `zone="${agent.zone}" pubkey mismatch: registry has ${entry.pubkey.toBase58()}, ` +
+          `caller passed ${agent.publicKey.toBase58()} — caller config is stale`,
+      );
+    }
+    return entry.mint;
   }
 
   // ---------- diagnostics (test-only) ----------

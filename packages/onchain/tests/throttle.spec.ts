@@ -105,14 +105,3 @@ test("delegateToGuardian throws NotImplementedError (Pkg-19, Q2)", async () => {
     ),
   ).rejects.toThrow(/Pkg-19/);
 });
-
-test("registerAgent throws NotImplementedError (Pkg-20)", async () => {
-  const client = makeClient();
-  await expect(
-    client.registerAgent({
-      zone: "execute",
-      name: "Guardian",
-      publicKey: Keypair.generate().publicKey,
-    }),
-  ).rejects.toThrow(/Pkg-20/);
-});
