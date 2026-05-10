@@ -34,17 +34,7 @@ import {
   RISK_POLICY_PROGRAM_ID,
   SWIG_DELEGATION_PROGRAM_ID,
 } from "../config/devnet";
-
-// Pinned demo inputs — the values the demo recording uses. Match these to
-// the equivalents in e2e-smoke.ts (steps 4, 5, 7) when adjusting.
-export const DEMO_STATE = {
-  thresholdPlaintext: 9_000n,
-  metricsLadder: [
-    { label: "low drawdown — should NOT breach", drawdownBps: 500,   notionalUSD: 9_000, liquidityShareBps: 100 },
-    { label: "high drawdown — should breach",    drawdownBps: 3_500, notionalUSD: 7_500, liquidityShareBps: 200 },
-  ],
-  rebalance: { action: "EXIT" as const, sizeBps: 10_000 },
-} as const;
+import { DEMO_STATE } from "./demo-state";
 
 const MIN_BALANCE_SOL = 0.05;
 
