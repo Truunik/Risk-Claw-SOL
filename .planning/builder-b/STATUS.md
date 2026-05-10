@@ -13,15 +13,15 @@ Live state for Builder B's execution. Updated as work progresses.
 
 ## Current phase
 
-**Stream P + Pkg + S all in motion.** Five atomic feature commits shipped (`78c6118`, `56ac103`, `5d16261`, `6d3b562` + the merge). 19 tests green across all surfaces (3 Anchor + 5 Anchor + 11 bun). Builder A unblocked for `appStubClient` → `RealClient` swap.
+**D8 — pre-submission.** PR #5 merged (IDL bundling, S-23 agents, T-34 audit, swap guide, S-27b e2e-smoke). PR #6 open: Pkg-20, T-30b TS-side, S-23b, docs. Builder A fully unblocked.
 
 ```
 [●] Stream F  — Foundation        100% (F-1, F-2, F-3, F-4)
 [◐] Stream P  — Programs            6/8 (P-5..P-7, P-9..P-10b done; P-11 deferred Q2)
-[◐] Stream C  — Circuit              2/3 (C-12, C-13 done; C-14 deferred — needs localnet fix)
-[◐] Stream Pkg — Package             6/8 active + 2 NotImplemented stubs (Pkg-19 Q2, Pkg-20 Metaplex)
-[◐] Stream S  — Scripts              3/4 (S-23 + S-24 + S-27b done; S-23b pending)
-[◐] Stream T  — Tests                4/8 written (T-28 + T-29/T-29b + T-31b + T-32 — 19 pass total)
+[◐] Stream C  — Circuit              2/3 (C-12, C-13 done; C-14 deferred — localnet wall)
+[●] Stream Pkg — Package             7/8 (Pkg-20 done as resolution; Pkg-19 deferred Q2)
+[●] Stream S  — Scripts              4/4 (S-23 + S-23b + S-24 + S-27b done; S-25 gated on C-14)
+[●] Stream T  — Tests                7/9 (T-28, T-29/T-29b, T-31b, T-32, T-30b TS, T-34 — 28 pass; T-30 + T-33 outstanding)
 ```
 
 ---
@@ -58,14 +58,14 @@ Live state for Builder B's execution. Updated as work progresses.
   - [x] **Pkg-18** `executePrivateRebalance` real (calls swig_delegation::executeRebalance with EXIT action)
   - [x] **Pkg-18b** FR-8b idempotency catch (`RebalanceTooSoon` → prior cached `TxSig`)
   - [ ] **Pkg-19** `delegateToGuardian` — throws NotImplementedError (deferred, Q2)
-  - [ ] **Pkg-20** `registerAgent` — throws NotImplementedError (deferred, Metaplex Core wiring)
+  - [x] **Pkg-20** `registerAgent` — resolves pre-registered mint by zone via `AGENT_REGISTRY`; rejects stale-config callers. Runtime minting/rotation is v2.
   - [x] **Pkg-21** `encryptThreshold` v1 placeholder packing with `RISKCLAW_V1_STUB` audit tag; `MXE_CLUSTER_PUBKEY` placeholder export
   - [x] **Pkg-22** 7 typed error classes (RiskclawError base + ArciumTimeout/ClusterUnavailable/SlippageRejected/NotImplemented/MultisigSignatureRejected/OnchainRejection)
 
 ### Stream S — Scripts
 
 - [x] **S-23** `scripts/register-agents.ts` (commit `f76b815`). Three Core NFTs minted on devnet (Observer/Analyst/Guardian); each owned by a dedicated zone keypair under `scripts/.keys/` (gitignored); Attributes plugin populated with `zone` + `agent_pubkey`. Idempotent re-runs verify on-chain via `fetchAssetV1`.
-- [ ] **S-23b** `scripts/seed-demo.ts` — demo Orca LP into demo treasury (B4)
+- [x] **S-23b** `scripts/seed-demo.ts` — preflight + airdrop top-up + pinned `DEMO_STATE`. Original B4 framing was "live Orca LP" but the v1 demo path needs no real LP (swig_delegation is a structural stub until P-11 lands the Swig CPI). Live LP is v2.
 - [x] **S-24** `scripts/deploy-devnet.ts` (commit `6d3b562`). Idempotent, --dry-run mode, auto-patches config/devnet.ts via regex on existing `RISK_POLICY_PROGRAM_ID` / `SWIG_DELEGATION_PROGRAM_ID` lines. Awaits operator-driven first run on devnet (needs ≥4 SOL airdropped).
 - [ ] **S-25** Arcium circuit deploy step (deferred — C-14 dependency)
 - [x] **S-26** `config/devnet.ts` schema is set by Builder A (PR #3); deploy-devnet.ts populates the program ID slots.
@@ -78,7 +78,7 @@ Live state for Builder B's execution. Updated as work progresses.
 - [x] **T-29** `swig_delegation` Anchor tests — 3/3 (AC-5, AC-6, AC-7 in commit `56ac103`).
 - [x] **T-29b** `RebalanceTooSoon` rejection — pass with state-not-advanced assertion (commit `56ac103`).
 - [ ] **T-30** Arcis circuit tests (3 scenarios) — deferred until C-14 enables `arcium test`.
-- [ ] **T-30b** Analyst-only signer rejection test (G1, AC-11) — deferred to C-14.
+- [x] **T-30b** v1 zone-separation invariant — `agents/tests/zone-separation.spec.ts` (6/6 pass). Fails CI if Keypair / signTransaction / sendTransaction / wallet-adapter ever leaks into observer.ts or analyst.ts. The original Anchor variant (Analyst-only Signer on `queue_threshold_check`) is gated on C-14 and remains deferred per T-34 §9.5.
 - [x] **T-31b** Throttle cache + idempotency catch — 7/7 bun tests (commit `5d16261`).
 - [x] **T-32** `encryptThreshold` roundtrip + RISKCLAW_V1_STUB tag — 4/4 bun tests (commit `5d16261`).
 - [x] **T-33** Integration smoke against deployed devnet — `smoke-realclient.ts` 3/3 PASS (commit `0f0035e`). Verifies setEncryptedPolicy, executePrivateRebalance, FR-8b cache, PDA seed match, IDL alignment.

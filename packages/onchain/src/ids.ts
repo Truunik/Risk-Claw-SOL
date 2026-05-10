@@ -6,6 +6,7 @@ import { PublicKey } from "@solana/web3.js";
 
 import {
   DEV_MULTISIG as DEV_MULTISIG_STR,
+  DEVNET_AGENTS as DEVNET_AGENTS_STR,
   RISK_POLICY_PROGRAM_ID as RISK_POLICY_PROGRAM_ID_STR,
   SQUADS_V4_PROGRAM_ID as SQUADS_V4_PROGRAM_ID_STR,
   SWIG_DELEGATION_PROGRAM_ID as SWIG_DELEGATION_PROGRAM_ID_STR,
@@ -31,6 +32,37 @@ export const RISK_POLICY_SEED = Buffer.from("policy");
 
 /** Seed for `LastRebalanced` PDA: [b"last_rebalanced", policy.key()]. */
 export const LAST_REBALANCED_SEED = Buffer.from("last_rebalanced");
+
+/**
+ * Pre-registered agent identities — populated by `scripts/register-agents.ts`
+ * (S-23) which mints one Metaplex Core NFT per zone on devnet and writes the
+ * registry back into `config/devnet.ts::DEVNET_AGENTS`.
+ *
+ * `mint`   = Core asset address (the NFT identity).
+ * `pubkey` = the agent's signer keypair (owner of the Core asset).
+ *
+ * V1: zones are fixed at registration time. `registerAgent` resolves rather
+ * than mints — runtime minting is out of scope until v2 (rotation flow).
+ */
+export type AgentZone = "read" | "compute" | "execute";
+export type AgentRegistryEntry = {
+  mint: PublicKey;
+  pubkey: PublicKey;
+  name: string;
+};
+export const AGENT_REGISTRY: Record<AgentZone, AgentRegistryEntry> = (() => {
+  const out = {} as Record<AgentZone, AgentRegistryEntry>;
+  for (const zone of ["read", "compute", "execute"] as const) {
+    const entry = DEVNET_AGENTS_STR[zone];
+    if (!entry) continue;
+    out[zone] = {
+      mint: new PublicKey(entry.mint),
+      pubkey: new PublicKey(entry.pubkey),
+      name: entry.name,
+    };
+  }
+  return out;
+})();
 
 /**
  * Derive the RiskPolicy PDA owned by a Squads vault.

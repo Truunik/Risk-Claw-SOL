@@ -3,22 +3,21 @@
 Coordination doc for the two-builder team. Update at the end of each working
 session — this file is the single source of truth for "where are we right now."
 
-> **Last updated:** 2026-05-09 (D7+) — Builder B (**PR #5 open** — bundled
-> `riskPolicyIdl` + `swigDelegationIdl` into `@riskclaw/onchain` so Builder
-> A's RealClient swap unblocks without Anchor CLI; plus S-23 agent NFTs +
-> T-34 audit + step-by-step swap guide)
+> **Last updated:** 2026-05-11 (D9 — submission day) — Builder B (PR #5
+> merged; PR #6 open with D8 batch + DEMO_STATE refactor + e2e verification
+> transcripts. Builder A fully unblocked — RealClient swap is the critical
+> path between us and the demo recording.)
 
 ## Where we are
 
-- **Calendar date:** 2026-05-09
-- **Day per plan:** D7 of 10 (see [`BUILD_PLAN.md`](./BUILD_PLAN.md))
-- **Deadline:** **2026-05-11** — **2 days remaining**
-- **State:** PR #4 in `main`, programs live on devnet, Helius streaming, real
-  encryptThreshold producing 64-byte ciphertext with `RISKCLAW_V1_STUB` tag.
-  Top gate now: **RealClient swap blocked** — `@riskclaw/onchain` doesn't
-  bundle the program IDLs, and `anchor build` isn't on Builder A's device.
-  Maroua needs to commit `programs/target/idl/*.json` into the package (or
-  Builder A installs Anchor CLI). D8 = audit-events wire + paired devnet test.
+- **Calendar date:** 2026-05-11
+- **Day per plan:** D9 of 10 — **submission day** (see [`BUILD_PLAN.md`](./BUILD_PLAN.md))
+- **Deadline:** **2026-05-11 (today)** — Colosseum Frontier
+- **State:** PR #5 in `main`. PR #6 open with the D8 ship-batch (Pkg-20 +
+  T-30b TS-side + S-23b + DEMO_STATE refactor + handoff + 2× live-devnet
+  9/9 e2e transcripts). Builder B's surface is complete and verified live
+  — even if Builder A's swap doesn't land, the e2e-smoke + transcripts
+  are a working demo.
 
 ## What's shipped
 
@@ -29,89 +28,87 @@ session — this file is the single source of truth for "where are we right now.
   `agents/src/run.ts` REDUCE→EXIT).
 - `75f695e` PR #3 — Builder A's `app/` (policy + audit), Helius observer,
   Squads scaffold, `config/devnet.ts`.
-- `68ca34a` **PR #4** — Builder B's full implementation: `risk_policy` +
+- `68ca34a` PR #4 — Builder B's full implementation: `risk_policy` +
   `swig_delegation` Anchor programs (P-5..P-10b), `RealClient` + typed errors
   + FR-5b/FR-8b throttle (Pkg-15..22), `deploy-devnet.ts` (S-24), devnet
   smoke (3/3 onchain). Programs live: `risk_policy = FNThNj…PHrzN`,
-  `swig_delegation = 9ECtiz…L9zBo`. 8/8 anchor + 11/11 bun tests pass per
-  Maroua + verified locally (bun side).
-- (uncommitted, ready) `app/policy` swap: `encryptThresholdStub` →
-  `encryptThreshold` from `@riskclaw/onchain`. Real `RISKCLAW_V1_STUB` tag at
-  bytes [48..64]; `app/lib/encrypt.ts` deleted (orphan). `bunx tsc` clean.
+  `swig_delegation = 9ECtiz…L9zBo`. 8/8 anchor + 11/11 bun tests pass.
+- `a8bc29d` Builder A's encryptThresholdStub → `@riskclaw/onchain`
+  encryptThreshold swap on `app/policy`.
+- **`b47497d` PR #5 (merged 2026-05-10)** — Builder B post-#4 follow-up:
+  - `6f275dd` IDL bundling (`riskPolicyIdl` + `swigDelegationIdl` exported)
+  - `f76b815` S-23 agent NFTs minted on devnet (Observer/Analyst/Guardian)
+  - `b15fd51` T-34 privacy invariant audit (PRD §9 invariants 1-4 PASS)
+  - `a71c2ab` Builder A swap guide (`.planning/builder-a-swap-guide.md`)
+  - `632bd30` S-27b e2e-smoke 9-step demo orchestrator
 
-**Devnet — live (2026-05-09):**
-- Programs: `risk_policy = FNThNj…PHrzN`, `swig_delegation = 9ECtiz…L9zBo`
-  (Builder B authority `2JAmdww…s24W`, ~2.76 SOL remaining).
-- Dev multisig: Squads V4 1-of-1 PDA `BpwBRaBoHj2it821Knv2WpKB67gC6rgfg7KRdBNHHqme`
-  (operator + sole signer = `Fzfjam6sgSjRSPNAZPZCpfwmRyAKvwSgZMvzLqcmsNnP`,
-  Builder A's keypair at `~/.config/solana/id.json`, 4.99 SOL).
-  `config/devnet.ts::DEV_MULTISIG` populated.
-- Helius: developer plan key in `agents/.env`. `bun run dev` opens
-  `wss://devnet.helius-rpc.com` clean (`[observer] ws open (1 positions)`).
-- Solana CLI 3.1.15. Anchor CLI **not** on Builder A's device.
+**Devnet — live (2026-05-10):**
+- Programs: `risk_policy = FNThNj…PHrzN`, `swig_delegation = 9ECtiz…L9zBo`.
+- Dev multisig: Squads V4 1-of-1 PDA `BpwBRaBoHj2it821Knv2WpKB67gC6rgfg7KRdBNHHqme`.
+- Agent NFTs (Metaplex Core): Observer `AERmaK…wLQU`, Analyst `Hq5VqN…UjdoR`,
+  Guardian `ERxDBE…E9YzH` — all owners gitignored at `scripts/.keys/`.
+- Helius: developer plan key in `agents/.env`. WS connects clean.
 
-**Verified state:**
+**Verified state (D8):**
 - `agents/` + `app/` + `scripts/` + `packages/onchain` typecheck clean.
-- `packages/onchain`: 11/11 bun tests pass locally (T-31b throttle + T-32 encrypt).
-- `programs/`: 8/8 anchor tests pass per Maroua (not re-verified locally — no Anchor CLI).
-- `encrypted/threshold_compare`: Arcis IR compiled (compare circuit, 464M ACU).
+- `packages/onchain`: 14/14 bun tests pass (encrypt + throttle + agents).
+- `agents/`: 6/6 bun tests pass (zone-separation invariant — T-30b TS variant).
+- `programs/`: 8/8 anchor tests pass (re-verifiable via `anchor test`).
 
 ## What's blocked / pending coordination
 
-- **RealClient swap blocked on IDL bundling** — `app/lib/onchain.ts` still
-  uses `appStubClient`. `createRealClient` requires `riskPolicyIdl` +
-  `swigDelegationIdl` JSONs (produced by `anchor build`). The deploy used
-  `--no-idl`, so on-chain fetch is closed too. **Action: Builder B commits
-  `programs/target/idl/{risk_policy,swig_delegation}.json` into
-  `@riskclaw/onchain` and re-exports them**, OR Builder A installs Anchor
-  CLI via `cargo install --git https://github.com/coral-xyz/anchor avm`
-  (~5–10 min). Builder B path is cheaper.
-- **Real Arcium encryption** — `encryptThreshold` ships v1 placeholder
-  packing (auditable `RISKCLAW_V1_STUB` tag). Real RescueCipher envelope
-  wires up post-C-14 when `MXE_CLUSTER_PUBKEY` is set. PRD §9: no plaintext
-  logging on the swap.
-- **C-14 Arcium runtime — deferred.** Localnet startup wall blocks the E2E
-  test path; v1 ships with FR-5b stub returning a deterministic mock from
-  `drawdownBps`. PRD §7 R1 fallback documented. Stretch goal.
+- **Paired devnet test (T-33)** — gated on Builder A's RealClient swap. Once
+  Builder A's app calls `createRealClient` against the bundled IDLs, run
+  Phantom → policy editor → multisig → observer breach → audit page e2e
+  with Builder B watching the program logs. This is the demo.
+- **C-14 Arcium runtime — DEFERRED.** Localnet startup wall blocks the E2E
+  encryption path. v1 ships with FR-5b stub (`RISKCLAW_V1_STUB` tag, code +
+  on-chain audit caveat documented). PRD §7 R1 fallback. Submission framing
+  must distinguish v1 placeholder packing from v2 RescueCipher claim — see
+  T-34 audit conclusion.
+- **P-11 / Pkg-19** — Swig CPI for Exit + delegateToGuardian. Q2 spike (Swig
+  SDK API) unresolved. v1 ships the stub; v2 work.
 
 ## Builder A — next concrete action
 
 **Goal:** Land RealClient swap, wire live audit events, run paired devnet test.
 
-1. **Commit + push the encrypt swap** (already on disk):
-   `app/app/policy/page.tsx` mod + `app/lib/encrypt.ts` deletion.
-   `feat(app): swap encryptThresholdStub → @riskclaw/onchain encryptThreshold`.
-2. **Wait on Builder B's IDL bundle**, then swap `appStubClient` →
-   `createRealClient`. Pass `connection` from `useConnection()` and a wallet
-   adapter from `useWallet()` shimmed to `anchor.Wallet`. Form/UI shapes are
-   isomorphic — no UI change.
-3. **Wire `/app/audit` to live program events** — replace `generateDemoEvents()`
-   with `program.addEventListener("ThresholdCheckEvent", …)` +
-   `"RebalanceExecutedEvent"`. `AuditEvent` shapes already mirror Builder B's
-   payloads.
-4. **Paired devnet test:** Phantom → policy editor → propose → multisig
-   `BpwBRa…HHqme` executes → observer drift breach → audit page renders the
-   real event.
+1. **Pull `main`** — IDLs are now bundled in `@riskclaw/onchain`. No Anchor
+   CLI needed.
+2. **Swap `appStubClient` → `createRealClient`** per
+   [`.planning/builder-a-swap-guide.md`](./.planning/builder-a-swap-guide.md):
+   ```ts
+   import { createRealClient, riskPolicyIdl, swigDelegationIdl } from "@riskclaw/onchain";
+   const client = createRealClient({ connection, wallet, cluster: "devnet", riskPolicyIdl, swigDelegationIdl });
+   ```
+3. **Wire `/app/audit` to live program events** — replace
+   `generateDemoEvents()` with `program.addEventListener("RebalanceExecutedEvent", …)`.
+   Pattern shown in `scripts/e2e-smoke.ts` step 3.
+4. **Paired devnet test** — Phantom → policy editor → propose →
+   multisig auto-exec → observer drift breach → audit page renders the real event.
 
 **DoD:**
-- Policy editor submit produces a real `setEncryptedPolicy` tx (1-of-1 auto-exec).
-- `/app/audit` lists at least one real `ThresholdCheckEvent` post-paired run.
+- Policy editor submit produces a real `setEncryptedPolicy` tx on devnet.
+- `/app/audit` lists at least one real `RebalanceExecutedEvent`.
 
-**Estimated time:** ~2–3 hours net once IDLs land.
+**Estimated time:** ~2–3 hours net (the swap is mechanical now that IDLs bundle).
 
 ## Builder B — next concrete action
 
-**Goal:** Unblock RealClient swap, then paired devnet test.
+**Goal:** Submit. Standby for Builder A's swap; record demo; submit.
 
-1. **Bundle the program IDLs** in `@riskclaw/onchain`. Commit
-   `programs/target/idl/{risk_policy,swig_delegation}.json` and re-export
-   from `packages/onchain/src/index.ts` so Builder A can wire
-   `createRealClient` without `anchor build`. This is the critical-path gate.
-2. Paired session post-swap: verify `setEncryptedPolicy` + a synthetic
-   `RebalanceExecutedEvent` fire on devnet.
-
-**Stretch:** C-14 Arcium runtime wiring (localnet wall remains; Rust-only
-T-30b Analyst-Signer-rejection is the alternative).
+1. **Land PR #6** (D8 batch + DEMO_STATE refactor + verification transcripts).
+2. **`bun run seed-demo`** preflight before any recording — verifies devnet
+   state, tops up wallet via airdrop if below 0.05 SOL.
+3. **Paired devnet test (T-33)** with Builder A once their swap lands —
+   Phantom → policy editor → multisig → observer breach → audit page renders
+   real `RebalanceExecutedEvent`. THAT is the recording.
+4. **Fallback recording** if Builder A's swap slips: `bun run e2e-smoke`
+   alone is a working demo. Transcripts at
+   [`.planning/builder-b/e2e-transcript-D8-pinned.txt`](./.planning/builder-b/e2e-transcript-D8-pinned.txt)
+   prove the 9/9 path against live devnet (real txs `2iNnUdZT…` set,
+   `mDg1n47U…` exec).
+5. **Submit on colosseum.com/frontier** before deadline.
 
 ## Where to read
 
@@ -119,11 +116,15 @@ T-30b Analyst-Signer-rejection is the alternative).
   [`CLAUDE.md`](./CLAUDE.md) — repo overview, work split, boundary rules
 - [`agents/src/onchain-client.ts`](./agents/src/onchain-client.ts) — locked
   integration contract
-- [`config/devnet.ts`](./config/devnet.ts) — shared addresses
+- [`config/devnet.ts`](./config/devnet.ts) — shared addresses + DEVNET_AGENTS
+- [`.planning/builder-a-swap-guide.md`](./.planning/builder-a-swap-guide.md) —
+  step-by-step swap instructions (read first if you're Builder A)
+- [`.planning/builder-b/T-34-audit.md`](./.planning/builder-b/T-34-audit.md) —
+  privacy invariant audit (PASS for v1 scope; v1 placeholder caveat documented)
 - [`.planning/builder-b/PRD.md`](./.planning/builder-b/PRD.md) — features,
   API contracts §5, security invariants §9, execution streams §12
 - [`.planning/builder-b/STATUS.md`](./.planning/builder-b/STATUS.md) —
-  Builder B pipeline state, open spikes Q1–Q7
+  Builder B pipeline state
 
 ## How to update this file
 

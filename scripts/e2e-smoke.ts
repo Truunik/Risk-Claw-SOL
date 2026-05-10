@@ -42,6 +42,7 @@ import {
   NotImplementedError,
 } from "../packages/onchain/src";
 import { RPC_ENDPOINT, DEVNET_AGENTS } from "../config/devnet";
+import { DEMO_STATE } from "./demo-state";
 
 // Demo pacing — small delays make the screen recording readable.
 const PACE_MS = Number(process.env.E2E_PACE_MS ?? "800");
@@ -120,8 +121,8 @@ async function main() {
   // step 2 — setEncryptedPolicy
   // ------------------------------------------------------------------
   log("");
-  const s2 = new Step(2, "setEncryptedPolicy(threshold=9000)");
-  const ciphertext = await encryptThreshold(9000n, null);
+  const s2 = new Step(2, `setEncryptedPolicy(threshold=${DEMO_STATE.thresholdPlaintext})`);
+  const ciphertext = await encryptThreshold(DEMO_STATE.thresholdPlaintext, null);
   const tag = new TextDecoder().decode(ciphertext.slice(48, 64));
   if (tag !== "RISKCLAW_V1_STUB") s2.fail(`expected RISKCLAW_V1_STUB tag, got ${tag}`);
   log(`  ciphertext: 64 bytes; tag=${tag} (v1 placeholder packing per PRD §7 R1)`);
@@ -157,16 +158,17 @@ async function main() {
   // step 4 — checkThresholdBreach: low drawdown → false
   // ------------------------------------------------------------------
   log("");
-  const s4 = new Step(4, "checkThresholdBreach @ low drawdown");
+  const lowStage = DEMO_STATE.metricsLadder[0];
+  const s4 = new Step(4, `checkThresholdBreach @ low drawdown (${lowStage.drawdownBps}bps)`);
   const r4 = await client.checkThresholdBreach(policyPda.toBase58(), {
     positionId: policyPda.toBase58(),
-    notionalUSD: 9_000,
-    drawdownBps: 500,
-    liquidityShareBps: 100,
+    notionalUSD: lowStage.notionalUSD,
+    drawdownBps: lowStage.drawdownBps,
+    liquidityShareBps: lowStage.liquidityShareBps,
     observedAtUnixMs: Date.now(),
   });
-  if (r4.breached !== false) s4.fail(`expected breached=false at drawdown=500bps, got ${r4.breached}`);
-  s4.pass(`breached=false (drawdown 500bps < 2500bps threshold)`);
+  if (r4.breached !== false) s4.fail(`expected breached=false at drawdown=${lowStage.drawdownBps}bps, got ${r4.breached}`);
+  s4.pass(`breached=false (drawdown ${lowStage.drawdownBps}bps < 2500bps threshold)`);
   await pace();
 
   // Wait out the FR-5b cache window so step 5 actually re-evaluates.
@@ -177,15 +179,16 @@ async function main() {
   // step 5 — checkThresholdBreach: high drawdown → true
   // ------------------------------------------------------------------
   log("");
-  const s5 = new Step(5, "checkThresholdBreach @ high drawdown");
+  const highStage = DEMO_STATE.metricsLadder[1];
+  const s5 = new Step(5, `checkThresholdBreach @ high drawdown (${highStage.drawdownBps}bps)`);
   const r5 = await client.checkThresholdBreach(policyPda.toBase58(), {
     positionId: policyPda.toBase58(),
-    notionalUSD: 7_500,
-    drawdownBps: 3_500,
-    liquidityShareBps: 200,
+    notionalUSD: highStage.notionalUSD,
+    drawdownBps: highStage.drawdownBps,
+    liquidityShareBps: highStage.liquidityShareBps,
     observedAtUnixMs: Date.now(),
   });
-  if (r5.breached !== true) s5.fail(`expected breached=true at drawdown=3500bps, got ${r5.breached}`);
+  if (r5.breached !== true) s5.fail(`expected breached=true at drawdown=${highStage.drawdownBps}bps, got ${r5.breached}`);
   s5.pass(`breached=true score=${r5.score}`);
   await pace();
 
@@ -211,11 +214,14 @@ async function main() {
   // step 7 — executePrivateRebalance → tx + event
   // ------------------------------------------------------------------
   log("");
-  const s7 = new Step(7, "executePrivateRebalance(EXIT, sizeBps=10000)");
+  const s7 = new Step(
+    7,
+    `executePrivateRebalance(${DEMO_STATE.rebalance.action}, sizeBps=${DEMO_STATE.rebalance.sizeBps})`,
+  );
   const execSig = await client.executePrivateRebalance({
     positionId: policyPda.toBase58(),
-    action: "EXIT",
-    sizeBps: 10_000,
+    action: DEMO_STATE.rebalance.action,
+    sizeBps: DEMO_STATE.rebalance.sizeBps,
   });
   log(`  tx ${execSig.slice(0, 16)}…`);
   log(`     ${explorer(execSig)}`);
@@ -241,8 +247,8 @@ async function main() {
   const s8 = new Step(8, "FR-8b idempotency catch");
   const sig2 = await client.executePrivateRebalance({
     positionId: policyPda.toBase58(),
-    action: "EXIT",
-    sizeBps: 10_000,
+    action: DEMO_STATE.rebalance.action,
+    sizeBps: DEMO_STATE.rebalance.sizeBps,
   });
   if (sig2 !== execSig) s8.fail(`expected prior TxSig ${execSig.slice(0, 8)}…, got ${sig2.slice(0, 8)}…`);
   s8.pass(`returned cached prior TxSig (no second swap)`);

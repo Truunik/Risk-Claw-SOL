@@ -25,6 +25,7 @@ export {
 } from "./encrypt";
 
 export {
+  AGENT_REGISTRY,
   DEV_MULTISIG,
   LAST_REBALANCED_SEED,
   RISK_POLICY_PROGRAM_ID,
@@ -34,6 +35,7 @@ export {
   deriveLastRebalancedPda,
   deriveRiskPolicyPda,
 } from "./ids";
+export type { AgentZone, AgentRegistryEntry } from "./ids";
 
 export type { OnchainClient } from "../../../agents/src/onchain-client";
 export type {
