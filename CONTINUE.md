@@ -3,21 +3,21 @@
 Coordination doc for the two-builder team. Update at the end of each working
 session — this file is the single source of truth for "where are we right now."
 
-> **Last updated:** 2026-05-10 (D8) — Builder B (**PR #5 merged**; D8 batch
-> open in PR #6: Pkg-20 wired, T-30b TS-side shipped, S-23b seed-demo, docs
-> refresh). Builder A is now fully unblocked for the RealClient swap.
+> **Last updated:** 2026-05-11 (D9 — submission day) — Builder B (PR #5
+> merged; PR #6 open with D8 batch + DEMO_STATE refactor + e2e verification
+> transcripts. Builder A fully unblocked — RealClient swap is the critical
+> path between us and the demo recording.)
 
 ## Where we are
 
-- **Calendar date:** 2026-05-10
-- **Day per plan:** D8 of 10 (see [`BUILD_PLAN.md`](./BUILD_PLAN.md))
-- **Deadline:** **2026-05-11** — **1 day remaining** (Colosseum Frontier)
-- **State:** PR #5 in `main` — IDL bundling, S-23 agents, T-34 audit, swap
-  guide, S-27b e2e-smoke all live. Builder B's critical-path gate is done.
-  Builder A is unblocked end-to-end: bundled IDLs in `@riskclaw/onchain`,
-  agents minted on devnet, e2e-smoke walks the full surface. Next critical
-  steps: Builder A lands the RealClient swap; paired devnet test (T-33);
-  demo recording.
+- **Calendar date:** 2026-05-11
+- **Day per plan:** D9 of 10 — **submission day** (see [`BUILD_PLAN.md`](./BUILD_PLAN.md))
+- **Deadline:** **2026-05-11 (today)** — Colosseum Frontier
+- **State:** PR #5 in `main`. PR #6 open with the D8 ship-batch (Pkg-20 +
+  T-30b TS-side + S-23b + DEMO_STATE refactor + handoff + 2× live-devnet
+  9/9 e2e transcripts). Builder B's surface is complete and verified live
+  — even if Builder A's swap doesn't land, the e2e-smoke + transcripts
+  are a working demo.
 
 ## What's shipped
 
@@ -95,18 +95,20 @@ session — this file is the single source of truth for "where are we right now.
 
 ## Builder B — next concrete action
 
-**Goal:** Demo materials + standby for Builder A's paired test.
+**Goal:** Submit. Standby for Builder A's swap; record demo; submit.
 
-1. **Watch PR #6** through review/merge (D8 batch: Pkg-20, T-30b, S-23b, docs).
-2. **Run `bun run seed-demo`** before the paired test to verify devnet state
-   + top-up wallet via airdrop.
-3. **Stand by for paired devnet test (T-33)** — coordinate via team thread
-   once Builder A pushes the swap.
-4. **Demo recording (D9)** — 2-min walkthrough of `bun run e2e-smoke` +
-   the Builder A app flow. Storyboard in [`README.md`](./README.md) Demo section.
-
-**Stretch (only if Builder A's swap lands early):**
-- C-14 Arcium runtime wiring — risky, localnet wall remains.
+1. **Land PR #6** (D8 batch + DEMO_STATE refactor + verification transcripts).
+2. **`bun run seed-demo`** preflight before any recording — verifies devnet
+   state, tops up wallet via airdrop if below 0.05 SOL.
+3. **Paired devnet test (T-33)** with Builder A once their swap lands —
+   Phantom → policy editor → multisig → observer breach → audit page renders
+   real `RebalanceExecutedEvent`. THAT is the recording.
+4. **Fallback recording** if Builder A's swap slips: `bun run e2e-smoke`
+   alone is a working demo. Transcripts at
+   [`.planning/builder-b/e2e-transcript-D8-pinned.txt`](./.planning/builder-b/e2e-transcript-D8-pinned.txt)
+   prove the 9/9 path against live devnet (real txs `2iNnUdZT…` set,
+   `mDg1n47U…` exec).
+5. **Submit on colosseum.com/frontier** before deadline.
 
 ## Where to read
 
