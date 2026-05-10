@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "bun run src/run.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
   },
   "dependencies": {
     "@solana/web3.js": "^1.95.0"
