@@ -119,8 +119,10 @@ live in [`BUILD_PLAN.md`](./BUILD_PLAN.md). Read that before starting work.
 
 ## Submission
 
-Paste-ready submission copy + sponsor track links + judges' 1-page summary:
-[`SUBMISSION.md`](./SUBMISSION.md).
+- Paste-ready submission copy + sponsor track links + judges' 1-page summary:
+  [`SUBMISSION.md`](./SUBMISSION.md)
+- Ordered D9 submission runbook (preflight → record → upload → submit):
+  [`RUNBOOK.md`](./RUNBOOK.md)
 
 ## Status
 
