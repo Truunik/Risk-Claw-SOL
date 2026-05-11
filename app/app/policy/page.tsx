@@ -5,8 +5,8 @@ import Link from "next/link";
 import { useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 
-import { appStubClient } from "@/lib/onchain";
-import { encryptThreshold } from "../../../packages/onchain/src/encrypt";
+import { useOnchainClient } from "@/lib/onchain";
+import { encryptThreshold } from "@riskclaw/onchain";
 import { getDevMultisig, isMultisigConfigured } from "@/lib/squads";
 
 const WalletMultiButton = dynamic(
@@ -23,6 +23,7 @@ type ProposalState =
 
 export default function PolicyEditor() {
   const { connected, publicKey } = useWallet();
+  const client = useOnchainClient();
 
   const defaultExpiry =
     Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60;
@@ -36,15 +37,24 @@ export default function PolicyEditor() {
   const multisig = getDevMultisig();
   const multisigReady = isMultisigConfigured() && multisig !== null;
 
-  const canSubmit = connected && multisigReady && state.kind !== "proposing";
+  const canSubmit =
+    connected && multisigReady && client !== null && state.kind !== "proposing";
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!multisig || !connected) return;
+    if (!multisig || !connected || !publicKey || !client) return;
     setState({ kind: "proposing" });
     try {
       const ciphertext = await encryptThreshold(BigInt(drawdownBps), null);
-      const txSig = await appStubClient.setEncryptedPolicy(multisig, ciphertext);
+      // V1 demo: 1-of-1 dev multisig where the operator's wallet IS the sole
+      // signer. The on-chain Anchor constraint `Signer + has_one` requires
+      // the signer pubkey to equal `owningMultisigVault`, so we pass
+      // `publicKey` (the wallet) rather than the Squads vault PDA. The
+      // production flow wraps this call in Squads' vault transaction execute
+      // (PDA signs via invoke_signed); for v1 the wallet is the approval
+      // layer. The Squads PDA above is displayed as the architectural
+      // approval-layer identifier.
+      const txSig = await client.setEncryptedPolicy(publicKey, ciphertext);
       setState({ kind: "proposed", txSig });
     } catch (err) {
       setState({
@@ -181,7 +191,15 @@ export default function PolicyEditor() {
 
         {state.kind === "proposed" && (
           <p className="rounded-md border border-emerald-700/50 bg-emerald-950/30 px-3 py-2 font-mono text-[11px] text-emerald-300">
-            Proposed. tx (stub): {state.txSig}
+            Proposed. tx:{" "}
+            <a
+              href={`https://explorer.solana.com/tx/${state.txSig}?cluster=devnet`}
+              target="_blank"
+              rel="noreferrer"
+              className="underline hover:text-emerald-200"
+            >
+              {state.txSig.slice(0, 16)}…
+            </a>
           </p>
         )}
         {state.kind === "error" && (

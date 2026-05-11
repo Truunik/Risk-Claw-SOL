@@ -20,7 +20,8 @@
     ],
     "paths": {
       "@/*": ["./*"],
-      "@config/*": ["../config/*"]
+      "@config/*": ["../config/*"],
+      "@riskclaw/onchain": ["../packages/onchain/src/index.ts"]
     }
   },
   "include": [
@@ -30,7 +31,8 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts",
-    "../config/**/*.ts"
+    "../config/**/*.ts",
+    "../packages/onchain/src/**/*.ts"
   ],
   "exclude": ["node_modules"]
 }
