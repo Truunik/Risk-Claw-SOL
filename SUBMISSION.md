@@ -5,6 +5,18 @@ track. Public-facing language only — do not paste internal planning files.
 
 ---
 
+## 🔗 Quick links for judges
+
+| | |
+|---|---|
+| **Live app (Solana devnet)** | **https://riskclaw-sol.vercel.app** |
+| **Public repo** | https://github.com/Truunik/Risk-Claw-SOL |
+| **Read-only on-chain verifier** (no wallet) | `bun run verify-onchain` (see "How to run it" below) |
+| **Privacy audit (T-34)** | [`.planning/builder-b/T-34-audit.md`](./.planning/builder-b/T-34-audit.md) |
+| **Live demo transcript with real on-chain txs** | [`.planning/builder-b/e2e-transcript-D8-pinned.txt`](./.planning/builder-b/e2e-transcript-D8-pinned.txt) |
+
+---
+
 ## Title
 
 **RiskClaw-Sol**
@@ -142,11 +154,26 @@ specific file where the integration lives.
 
 ## How to run it
 
+**Option 1 — interact with the live app** (recommended for a 30-second tour):
+
+1. Open **https://riskclaw-sol.vercel.app**
+2. Install [Phantom](https://phantom.app), enable Devnet (Settings → Developer Settings → Testnet Mode → Devnet)
+3. Get ≥ 0.05 devnet SOL from [faucet.solana.com](https://faucet.solana.com)
+4. Click **Policy** → connect Phantom → submit a policy → approve in Phantom → real on-chain tx with Explorer link
+5. Open **Audit** in another tab → subscribed live to `RebalanceExecutedEvent`
+
+**Option 2 — verify the live on-chain state** (no wallet needed, ~5 seconds):
+
 ```bash
-# Anyone can verify the live demo against devnet:
 git clone https://github.com/Truunik/Risk-Claw-SOL.git
 cd Risk-Claw-SOL/scripts
 bun install
+bun run verify-onchain    # confirms RISKCLAW_V1_STUB tag + agent NFT zones
+```
+
+**Option 3 — fire the full 9-step demo against live devnet** (requires a funded devnet wallet at `~/.config/solana/id.json`):
+
+```bash
 bun run seed-demo     # preflight + airdrop top-up; prints DEMO_STATE
 bun run e2e-smoke     # 9-step end-to-end against live devnet — 9/9 PASS
 ```
@@ -160,6 +187,71 @@ idempotency catch → audit event capture → graceful NotImplementedError on
 the deferred path.
 
 Demo storyboard (2 minutes) — see [`README.md` §Demo](./README.md#demo-storyboard-2-minutes).
+
+---
+
+## Access instructions
+
+The product is fully public — **no logins, no API keys, no backend credentials needed**. The repo is open on GitHub and the live app is on Vercel.
+
+### Live web app
+
+**https://riskclaw-sol.vercel.app**
+
+Three routes:
+- `/` — operator console landing page
+- `/policy` — encrypted-threshold policy editor (wallet connect required to submit)
+- `/audit` — live audit trail (subscribed to `RebalanceExecutedEvent` on `swig_delegation`)
+
+### Wallet setup (~2 minutes)
+
+To submit a policy or watch live audit events, you need a Solana wallet on devnet:
+
+1. Install [Phantom](https://phantom.app) (Chrome / Firefox / Safari extension or mobile)
+2. Open Phantom → Settings → Developer Settings → **Testnet Mode** ON → switch network to **Devnet**
+3. Copy your wallet's devnet address
+4. Get ≥ 0.05 devnet SOL from [faucet.solana.com](https://faucet.solana.com) (paste address, click airdrop). Alternative: `solana airdrop 1 <YOUR_ADDRESS> --url devnet` from a local Solana CLI.
+
+That's it — you're set up.
+
+### Walkthrough (30 seconds)
+
+1. Open https://riskclaw-sol.vercel.app/policy
+2. Click **Select Wallet** → **Phantom** → approve connection
+3. Drag the **Drawdown limit** slider (try 9000 bps)
+4. Click **Propose policy update** → approve in Phantom
+5. Green box appears with a real base58 tx signature + **Explorer link** — open it to verify the tx hit `risk_policy = FNThNj…PHrzN` on devnet
+6. Open https://riskclaw-sol.vercel.app/audit in a new tab to see the three agent NFT identity cards (Observer / Analyst / Guardian) — each links to its on-chain Metaplex Core asset
+
+### Watching a live rebalance event
+
+The `/audit` page subscribes to `RebalanceExecutedEvent` on `swig_delegation`. To trigger one (and watch it appear in real time), run the demo orchestrator:
+
+```bash
+git clone https://github.com/Truunik/Risk-Claw-SOL.git
+cd Risk-Claw-SOL/scripts
+bun install
+bun run e2e-smoke    # 9 steps, ~30s, fires real on-chain rebalance at step 7
+```
+
+Keep `/audit` open while this runs — the row appears live when step 7 fires its `executePrivateRebalance` tx.
+
+### Verifying the on-chain state directly (no wallet, no app)
+
+```bash
+cd Risk-Claw-SOL/scripts
+bun install
+bun run verify-onchain    # read-only, ~5s
+```
+
+Confirms: both programs deployed, Squads multisig owned by Squads V4, the RiskPolicy account carries the `RISKCLAW_V1_STUB` audit tag at bytes [48..64], and all three Metaplex Core agent NFTs carry their correct `zone` attribute. **This is the strongest single proof of the v1 honesty claim** — every byte on-chain is grep-able.
+
+### Troubleshooting
+
+- **"User rejected the request"** — Phantom signature prompt was declined; just click **Propose** again and approve.
+- **"insufficient funds"** — wallet has < 0.001 SOL; airdrop more devnet SOL.
+- **Audit page shows "Waiting for the first RebalanceExecutedEvent…"** — that's expected until a rebalance fires. Either wait for a paired devnet run or trigger one yourself via `bun run e2e-smoke`.
+- **Policy submit returns `RebalanceTooSoon` or similar** — the wallet already has a policy from a prior submit; this is FR-8b idempotency working as designed. Wait 30s and retry, or use a fresh devnet wallet.
 
 ---
 

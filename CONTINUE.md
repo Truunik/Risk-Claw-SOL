@@ -4,21 +4,24 @@ Coordination doc for the two-builder team. Update at the end of each working
 session — this file is the single source of truth for "where are we right now."
 
 > **Last updated:** 2026-05-11 (D9 — submission day) — Builder B (PR #5 +
-> PR #6 both merged. SUBMISSION.md + RUNBOOK.md + DEMO_NARRATION.md +
-> verify-onchain.ts all live on main. Submission audit clean. Builder A's
-> swap is the only remaining critical-path code item; recording + submission
-> are user actions.)
+> PR #6 + PR #7 all merged; T-33 Builder A swap landed. **Live app deployed
+> to Vercel at https://riskclaw-sol.vercel.app**. Repo is now public on
+> GitHub. SUBMISSION.md updated with judge-friendly quick links + 3-option
+> "How to run it" section. Recording + colosseum.com form submission are
+> the only remaining user actions.)
 
 ## Where we are
 
 - **Calendar date:** 2026-05-11
 - **Day per plan:** D9 of 10 — **submission day** (see [`BUILD_PLAN.md`](./BUILD_PLAN.md))
 - **Deadline:** **2026-05-11 (today)** — Colosseum Frontier
-- **State:** PR #5 + PR #6 both in `main`. Builder B's surface is complete
-  and verified live (`bun run verify-onchain` and `bun run e2e-smoke` both
-  pass against devnet — 5/5 + 9/9). Submission stack in repo: SUBMISSION.md,
-  RUNBOOK.md, DEMO_NARRATION.md, T-34 audit, transcripts. Even if Builder
-  A's swap doesn't land, e2e-smoke + transcripts are a working demo.
+- **State:** PR #5, PR #6, PR #7 all in `main`. Repo is **public** on GitHub.
+  Live app deployed to **https://riskclaw-sol.vercel.app** (Next.js 16 on
+  Vercel; Phantom + RealClient bound to bundled IDLs; live event
+  subscription on `/audit`). Builder B + Builder A surfaces both verified
+  live (`bun run verify-onchain` 5/5 + `bun run e2e-smoke` 9/9 + Vercel
+  prod build clean). Submission stack on main: SUBMISSION.md, RUNBOOK.md,
+  DEMO_NARRATION.md, T-34 audit, transcripts.
 
 ## What's shipped
 
@@ -96,11 +99,13 @@ session — this file is the single source of truth for "where are we right now.
 
 ## Builder B — next concrete action
 
-**Goal:** Submit. Standby for Builder A's swap; record demo; submit.
+**Goal:** Submit. Record demo and click submit.
 
 1. **Preflight before recording** — `bun run seed-demo` (config + wallet
    check + airdrop top-up) then `bun run verify-onchain` (read-only state
-   confirm). Both must pass.
+   confirm). Both must pass. The live Vercel app is at
+   https://riskclaw-sol.vercel.app — open it in incognito + Phantom for a
+   clean recording.
 3. **Paired devnet test (T-33)** with Builder A once their swap lands —
    Phantom → policy editor → multisig → observer breach → audit page renders
    real `RebalanceExecutedEvent`. THAT is the recording.

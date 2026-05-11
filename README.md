@@ -2,6 +2,8 @@
 
 **Audit-grade autonomous policy enforcement for institutional onchain capital — with cryptographic guarantees that the policy stays private even from the agents enforcing it.**
 
+> **Live app on Solana devnet:** **https://riskclaw-sol.vercel.app** — connect Phantom (Devnet) and submit a real encrypted policy in 30 seconds. See [Access instructions](./SUBMISSION.md#access-instructions) for the full judge-friendly walkthrough.
+
 RiskClaw-Sol is a Solana risk-ops layer for institutional LP positions. DAO
 treasuries and onchain funds delegate bounded rebalancing authority to a
 least-privilege three-zone agent stack (read / compute / execute). The user's
