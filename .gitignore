@@ -29,3 +29,4 @@ bun.lockb
 # state; secrets must NOT be committed)
 scripts/.keys/
 scripts/devnet-registry.json
+.vercel
