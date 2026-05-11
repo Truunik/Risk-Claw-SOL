@@ -64,6 +64,22 @@ the primary output.
 - `executePrivateRebalance`: https://explorer.solana.com/tx/mDg1n47USHtMoen3RpYG7dTFpRzjmpR8BiM832i4an6bJ6su1uTxEqMrJ6rNq5hWJ9p2mJZvufoC8fYy6rbY6Bv?cluster=devnet
 - Full 9/9 PASS transcript: [`.planning/builder-b/e2e-transcript-D8-pinned.txt`](./.planning/builder-b/e2e-transcript-D8-pinned.txt)
 
+**Anyone (including a judge) can verify the live on-chain state in 5
+seconds:**
+
+```bash
+cd Risk-Claw-SOL/scripts && bun install && bun run verify-onchain
+```
+
+Read-only — no devnet writes, no SOL consumed. Confirms both programs are
+deployed, the Squads multisig is owned by Squads V4, the RiskPolicy account
+exists and carries the `RISKCLAW_V1_STUB` tag at bytes [48..64], and all
+three Metaplex Core agent NFTs carry their correct `zone` attribute.
+
+Latest verification transcript:
+[`.planning/builder-b/verify-onchain-D9.txt`](./.planning/builder-b/verify-onchain-D9.txt) —
+all checks ✓.
+
 ---
 
 ## What ships in v1 — and what's deferred to v2

@@ -10,6 +10,7 @@
     "seed-demo": "bun run seed-demo.ts",
     "smoke-realclient": "bun run smoke-realclient.ts",
     "e2e-smoke": "bun run e2e-smoke.ts",
+    "verify-onchain": "bun run verify-onchain.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

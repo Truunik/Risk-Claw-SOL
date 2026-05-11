@@ -1,0 +1,35 @@
+$ bun run verify-onchain.ts
+[verify-onchain] 
+[verify-onchain] ═══ verify-onchain — read-only state check ═══
+[verify-onchain] 
+[verify-onchain] 1) program deployments
+[verify-onchain]   ✓ risk_policy      FNThNjwx…  executable  36 bytes
+[verify-onchain]   ✓ swig_delegation  9ECtiz1E…  executable  36 bytes
+[verify-onchain] 
+[verify-onchain] 2) Squads V4 dev multisig
+[verify-onchain]   ✓ BpwBRaBoHj2it821Knv2WpKB67gC6rgfg7KRdBNHHqme owned by Squads V4
+[verify-onchain] 
+[verify-onchain] 3) RiskPolicy PDA for the local operator wallet
+[verify-onchain]   ✓ RiskPolicy PDA exists at DpKAer9JUmzMfyJ3G3k3M7xGHp3WnGrg5Ppv1Uy5a1jB
+[verify-onchain]   ✓   owned by risk_policy program  (185 bytes)
+[verify-onchain]   ✓   owningMultisigVault = Fzfjam6sgSjRSPNAZPZCpfwmRyAKvwSgZMvzLqcmsNnP
+[verify-onchain]   ✓   updatedAt = 2026-05-10T20:46:49.000Z
+[verify-onchain] 
+[verify-onchain] 4) RISKCLAW_V1_STUB tag at bytes [48..64]
+[verify-onchain]   ✓ tag = "RISKCLAW_V1_STUB"  (v1 placeholder — honest, not cryptographic)
+[verify-onchain]   ✓   this is the on-chain signal a judge sees: v1 NOT v2 RescueCipher
+[verify-onchain] 
+[verify-onchain] 5) Metaplex Core agent NFTs
+[verify-onchain]   ✓ Observer mint=AERmaK7C…  zone="read"  (owner matches registry)
+[verify-onchain]   ✓ Analyst  mint=Hq5VqNHU…  zone="compute"  (owner matches registry)
+[verify-onchain]   ✓ Guardian mint=ERxDBEUU…  zone="execute"  (owner matches registry)
+[verify-onchain] 
+[verify-onchain] ═══ ALL CHECKS PASSED — on-chain state matches submission ═══
+[verify-onchain] 
+[verify-onchain] Public links a judge can open directly:
+[verify-onchain]   risk_policy:      https://explorer.solana.com/address/FNThNjwxtdVSttM1Q9R81pKbiSF7jCzt8vE22A4PHrzN?cluster=devnet
+[verify-onchain]   swig_delegation:  https://explorer.solana.com/address/9ECtiz1EnfKnVDYFKn4GofXGeoCZHupqN2GPkcgL9zBo?cluster=devnet
+[verify-onchain]   dev multisig:     https://explorer.solana.com/address/BpwBRaBoHj2it821Knv2WpKB67gC6rgfg7KRdBNHHqme?cluster=devnet
+[verify-onchain]   Observer NFT:   https://explorer.solana.com/address/AERmaK7CD7HGp8zFHP3PEGtfEC6QWZUHYh6Xg8YHwLQU?cluster=devnet
+[verify-onchain]   Analyst  NFT:   https://explorer.solana.com/address/Hq5VqNHUNtENWTNTk3ZqJz6jdJExrzw5cUCayAhVUjdo?cluster=devnet
+[verify-onchain]   Guardian NFT:   https://explorer.solana.com/address/ERxDBEUU6heys5PrA93tGZwjWucvhY3jJdyQpsFE9YzH?cluster=devnet

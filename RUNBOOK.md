@@ -22,6 +22,10 @@ Goal: confirm every moving part still works before recording.
       "ALL 9 STEPS PASSED"**. Capture the new transcript to
       `.planning/builder-b/e2e-transcript-D9-recording.txt` (just for the
       record — it's not committed).
+- [ ] **Verify the on-chain state** — `bun run verify-onchain`. Read-only,
+      ~5s. **MUST print "ALL CHECKS PASSED"**. Confirms the RISKCLAW_V1_STUB
+      tag is at bytes [48..64] in the live RiskPolicy account, and all 3
+      Core NFTs carry their correct `zone` attribute.
 - [ ] **If e2e-smoke FAILS:** stop. Read the failing step. Common causes:
       (a) devnet RPC flaky → re-run; (b) FR-8b idempotency window from a
       prior run → wait 60s, re-run; (c) wallet insufficient → airdrop.
@@ -37,6 +41,9 @@ a delayed one.
 ---
 
 ## T-5h to T-4h30 — Record the demo (~30 min)
+
+**Narration script** (read aloud while recording, both variants):
+[`.planning/builder-b/DEMO_NARRATION.md`](./.planning/builder-b/DEMO_NARRATION.md).
 
 ### Variant A — paired flow (if Builder A's swap landed)
 
