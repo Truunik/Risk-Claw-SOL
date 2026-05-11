@@ -117,9 +117,14 @@ Two-builder team, split for parallel execution.
 Full role breakdown, integration contract, day-by-day plan, and risk callouts
 live in [`BUILD_PLAN.md`](./BUILD_PLAN.md). Read that before starting work.
 
+## Submission
+
+Paste-ready submission copy + sponsor track links + judges' 1-page summary:
+[`SUBMISSION.md`](./SUBMISSION.md).
+
 ## Status
 
-Submission state as of D8 (2026-05-10) — deadline D9 (2026-05-11).
+Submission state as of D9 (2026-05-11 — submission day).
 
 - [x] Repo + LICENSE + plan docs
 - [x] Repo scaffolded (app / agents / programs / encrypted / scripts)
