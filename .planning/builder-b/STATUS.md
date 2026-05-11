@@ -13,7 +13,7 @@ Live state for Builder B's execution. Updated as work progresses.
 
 ## Current phase
 
-**D8 — pre-submission.** PR #5 merged (IDL bundling, S-23 agents, T-34 audit, swap guide, S-27b e2e-smoke). PR #6 open: Pkg-20, T-30b TS-side, S-23b, docs. Builder A fully unblocked.
+**D9 — submission day.** PR #5 + PR #6 both merged. Submission audit clean (one stale TODO fix on `agents/src/run.ts`). Builder B's surface complete; live-devnet verification on both `e2e-smoke` (9/9) and `verify-onchain` (5/5). Critical-path remaining is Builder A's swap + recording + submission.
 
 ```
 [●] Stream F  — Foundation        100% (F-1, F-2, F-3, F-4)

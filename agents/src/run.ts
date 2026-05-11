@@ -4,8 +4,11 @@ import { createObserver } from "./observer";
 import { stubClient } from "./onchain-client";
 
 async function main() {
-  // TODO Builder A: swap to the real @riskclaw/onchain client when Builder B
-  // ships Pkg-15..22 (RealClient implementation).
+  // Builder A: @riskclaw/onchain RealClient + bundled IDLs landed in PR #4
+  // + PR #5. To swap, replace `stubClient` with `createRealClient({
+  // connection, wallet, cluster: "devnet", riskPolicyIdl, swigDelegationIdl
+  // })` — full step-by-step in .planning/builder-a-swap-guide.md. The swap
+  // gates T-33 (paired devnet test).
   const onchain = stubClient;
 
   const heliusApiKey = process.env.HELIUS_API_KEY;

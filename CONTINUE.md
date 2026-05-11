@@ -3,21 +3,22 @@
 Coordination doc for the two-builder team. Update at the end of each working
 session — this file is the single source of truth for "where are we right now."
 
-> **Last updated:** 2026-05-11 (D9 — submission day) — Builder B (PR #5
-> merged; PR #6 open with D8 batch + DEMO_STATE refactor + e2e verification
-> transcripts. Builder A fully unblocked — RealClient swap is the critical
-> path between us and the demo recording.)
+> **Last updated:** 2026-05-11 (D9 — submission day) — Builder B (PR #5 +
+> PR #6 both merged. SUBMISSION.md + RUNBOOK.md + DEMO_NARRATION.md +
+> verify-onchain.ts all live on main. Submission audit clean. Builder A's
+> swap is the only remaining critical-path code item; recording + submission
+> are user actions.)
 
 ## Where we are
 
 - **Calendar date:** 2026-05-11
 - **Day per plan:** D9 of 10 — **submission day** (see [`BUILD_PLAN.md`](./BUILD_PLAN.md))
 - **Deadline:** **2026-05-11 (today)** — Colosseum Frontier
-- **State:** PR #5 in `main`. PR #6 open with the D8 ship-batch (Pkg-20 +
-  T-30b TS-side + S-23b + DEMO_STATE refactor + handoff + 2× live-devnet
-  9/9 e2e transcripts). Builder B's surface is complete and verified live
-  — even if Builder A's swap doesn't land, the e2e-smoke + transcripts
-  are a working demo.
+- **State:** PR #5 + PR #6 both in `main`. Builder B's surface is complete
+  and verified live (`bun run verify-onchain` and `bun run e2e-smoke` both
+  pass against devnet — 5/5 + 9/9). Submission stack in repo: SUBMISSION.md,
+  RUNBOOK.md, DEMO_NARRATION.md, T-34 audit, transcripts. Even if Builder
+  A's swap doesn't land, e2e-smoke + transcripts are a working demo.
 
 ## What's shipped
 
@@ -97,9 +98,9 @@ session — this file is the single source of truth for "where are we right now.
 
 **Goal:** Submit. Standby for Builder A's swap; record demo; submit.
 
-1. **Land PR #6** (D8 batch + DEMO_STATE refactor + verification transcripts).
-2. **`bun run seed-demo`** preflight before any recording — verifies devnet
-   state, tops up wallet via airdrop if below 0.05 SOL.
+1. **Preflight before recording** — `bun run seed-demo` (config + wallet
+   check + airdrop top-up) then `bun run verify-onchain` (read-only state
+   confirm). Both must pass.
 3. **Paired devnet test (T-33)** with Builder A once their swap lands —
    Phantom → policy editor → multisig → observer breach → audit page renders
    real `RebalanceExecutedEvent`. THAT is the recording.
