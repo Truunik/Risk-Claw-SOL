@@ -1,21 +1,19 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AppWalletProvider } from "./wallet-provider";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+import { SiteShell } from "./site-shell";
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  weight: ["400", "500", "600"],
 });
 
 export const metadata: Metadata = {
-  title: "RiskClaw-Sol — Operator Console",
-  description: "Audit-grade autonomous policy enforcement for institutional onchain capital.",
+  title: "RiskClaw — Audit-grade Autonomous Policy Enforcement",
+  description:
+    "Agents enforce what they cannot see. Solana onchain risk policy with cryptographic privacy.",
 };
 
 export default function RootLayout({
@@ -24,12 +22,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">
-        <AppWalletProvider>{children}</AppWalletProvider>
+    <html lang="en" className={`${geistMono.variable} h-full`}>
+      <body>
+        <AppWalletProvider>
+          <SiteShell>{children}</SiteShell>
+        </AppWalletProvider>
       </body>
     </html>
   );

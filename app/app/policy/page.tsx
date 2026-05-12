@@ -25,8 +25,7 @@ export default function PolicyEditor() {
   const { connected, publicKey } = useWallet();
   const client = useOnchainClient();
 
-  const defaultExpiry =
-    Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60;
+  const defaultExpiry = Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60;
 
   const [drawdownBps, setDrawdownBps] = useState(2000);
   const [maxNotionalUSD, setMaxNotionalUSD] = useState(2_000_000);
@@ -49,11 +48,7 @@ export default function PolicyEditor() {
       // V1 demo: 1-of-1 dev multisig where the operator's wallet IS the sole
       // signer. The on-chain Anchor constraint `Signer + has_one` requires
       // the signer pubkey to equal `owningMultisigVault`, so we pass
-      // `publicKey` (the wallet) rather than the Squads vault PDA. The
-      // production flow wraps this call in Squads' vault transaction execute
-      // (PDA signs via invoke_signed); for v1 the wallet is the approval
-      // layer. The Squads PDA above is displayed as the architectural
-      // approval-layer identifier.
+      // `publicKey` (the wallet) rather than the Squads vault PDA.
       const txSig = await client.setEncryptedPolicy(publicKey, ciphertext);
       setState({ kind: "proposed", txSig });
     } catch (err) {
@@ -65,18 +60,15 @@ export default function PolicyEditor() {
   }
 
   return (
-    <main className="flex flex-1 flex-col gap-6 p-8 sm:p-12">
-      <header className="flex flex-col gap-2">
-        <Link href="/" className="text-xs text-zinc-500 hover:text-zinc-300">
-          ← back
-        </Link>
-        <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">
-          Policy editor
-        </p>
-        <h1 className="text-2xl font-semibold sm:text-3xl">
-          Encrypted risk policy
-        </h1>
-        <p className="max-w-2xl text-sm text-zinc-500">
+    <div className="page-narrow">
+      <Link href="/" className="back-link">
+        ← Back
+      </Link>
+
+      <header className="page-header">
+        <p className="eyebrow">Policy editor</p>
+        <h1>Encrypted risk policy</h1>
+        <p className="lede">
           The plaintext threshold below never leaves this page in the clear —
           on submit it is encrypted via Arcium and stored as a 64-byte
           ciphertext on the <code>risk_policy</code> account. The Squads
@@ -84,24 +76,27 @@ export default function PolicyEditor() {
         </p>
       </header>
 
-      <div className="flex flex-wrap items-center gap-4">
+      <div className="policy-meta">
         <WalletMultiButton />
-        <code className="font-mono text-[11px] text-zinc-500">
-          {connected && publicKey
-            ? `operator: ${publicKey.toBase58().slice(0, 8)}…${publicKey.toBase58().slice(-6)}`
-            : "operator: not connected"}
-        </code>
-        <code className="font-mono text-[11px] text-zinc-500">
-          {multisigReady && multisig
-            ? `multisig: ${multisig.toBase58().slice(0, 8)}…${multisig.toBase58().slice(-6)}`
-            : "multisig: not configured"}
-        </code>
+        <span className="meta-chip">
+          <span className="label">Operator</span>
+          <code>
+            {connected && publicKey
+              ? `${publicKey.toBase58().slice(0, 6)}…${publicKey.toBase58().slice(-4)}`
+              : "not connected"}
+          </code>
+        </span>
+        <span className="meta-chip">
+          <span className="label">Multisig</span>
+          <code>
+            {multisigReady && multisig
+              ? `${multisig.toBase58().slice(0, 6)}…${multisig.toBase58().slice(-4)}`
+              : "not configured"}
+          </code>
+        </span>
       </div>
 
-      <form
-        onSubmit={onSubmit}
-        className="grid max-w-2xl grid-cols-1 gap-5 rounded-lg border border-zinc-800 bg-zinc-950/40 p-6"
-      >
+      <form onSubmit={onSubmit} className="form-grid">
         <Field
           label="Drawdown limit (bps)"
           hint="Trigger an EXIT when position drawdown crosses this. 10000 = 100%."
@@ -113,9 +108,9 @@ export default function PolicyEditor() {
             step={100}
             value={drawdownBps}
             onChange={(e) => setDrawdownBps(Number(e.target.value))}
-            className="w-full"
+            className="form-range"
           />
-          <span className="font-mono text-xs text-zinc-300">
+          <span className="form-readout">
             {drawdownBps} bps ({(drawdownBps / 100).toFixed(2)}%)
           </span>
         </Field>
@@ -130,7 +125,7 @@ export default function PolicyEditor() {
             step={50_000}
             value={maxNotionalUSD}
             onChange={(e) => setMaxNotionalUSD(Number(e.target.value))}
-            className="w-full rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm"
+            className="form-input"
           />
         </Field>
 
@@ -145,9 +140,9 @@ export default function PolicyEditor() {
             step={5}
             value={maxSlippageBps}
             onChange={(e) => setMaxSlippageBps(Number(e.target.value))}
-            className="w-full"
+            className="form-range"
           />
-          <span className="font-mono text-xs text-zinc-300">
+          <span className="form-readout">
             {maxSlippageBps} bps ({(maxSlippageBps / 100).toFixed(2)}%)
           </span>
         </Field>
@@ -161,9 +156,9 @@ export default function PolicyEditor() {
             min={0}
             value={expiresAtUnix}
             onChange={(e) => setExpiresAtUnix(Number(e.target.value))}
-            className="w-full rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm"
+            className="form-input"
           />
-          <span className="font-mono text-[11px] text-zinc-500">
+          <span className="form-readout">
             {new Date(expiresAtUnix * 1000).toISOString()}
           </span>
         </Field>
@@ -171,18 +166,18 @@ export default function PolicyEditor() {
         <button
           type="submit"
           disabled={!canSubmit}
-          className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-emerald-50 transition-colors hover:bg-emerald-500 disabled:cursor-not-allowed disabled:bg-zinc-800 disabled:text-zinc-500"
+          className="cta-button"
         >
-          {state.kind === "proposing" ? "Proposing…" : "Propose policy update"}
+          {state.kind === "proposing" ? "Proposing…" : "Propose policy update →"}
         </button>
 
         {!connected && (
-          <p className="text-xs text-amber-300/90">
+          <p className="form-readout">
             Connect a wallet to propose.
           </p>
         )}
         {connected && !multisigReady && (
-          <p className="text-xs text-amber-300/90">
+          <p className="form-readout">
             Run <code>scripts/create-multisig.ts</code> on devnet and paste the
             returned PDA into <code>config/devnet.ts</code> as{" "}
             <code>DEV_MULTISIG</code>.
@@ -190,25 +185,22 @@ export default function PolicyEditor() {
         )}
 
         {state.kind === "proposed" && (
-          <p className="rounded-md border border-emerald-700/50 bg-emerald-950/30 px-3 py-2 font-mono text-[11px] text-emerald-300">
+          <p className="form-status success">
             Proposed. tx:{" "}
             <a
               href={`https://explorer.solana.com/tx/${state.txSig}?cluster=devnet`}
               target="_blank"
               rel="noreferrer"
-              className="underline hover:text-emerald-200"
             >
               {state.txSig.slice(0, 16)}…
             </a>
           </p>
         )}
         {state.kind === "error" && (
-          <p className="rounded-md border border-red-700/50 bg-red-950/30 px-3 py-2 font-mono text-[11px] text-red-300">
-            {state.message}
-          </p>
+          <p className="form-status error">{state.message}</p>
         )}
       </form>
-    </main>
+    </div>
   );
 }
 
@@ -222,9 +214,9 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <label className="flex flex-col gap-2 text-sm">
-      <span className="font-medium text-zinc-200">{label}</span>
-      <span className="text-xs text-zinc-500">{hint}</span>
+    <label className="form-label">
+      <span className="form-label-title">{label}</span>
+      <span className="form-label-hint">{hint}</span>
       {children}
     </label>
   );
